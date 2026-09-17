@@ -1,4 +1,4 @@
-import type { SystemInfo, PlaywrightRunResult, ProjectScanResult } from '../../../preload/index'
+import type { SystemInfo, PlaywrightRunResult, ProjectScanResult } from '../types'
 
 class ElectronService {
   private isElectronAvailable(): boolean {

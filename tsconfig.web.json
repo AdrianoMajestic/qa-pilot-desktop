@@ -11,6 +11,7 @@
     "strict": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
+    "outDir": "out/renderer",
     "paths": {
       "@renderer/*": [
         "src/renderer/src/*"
