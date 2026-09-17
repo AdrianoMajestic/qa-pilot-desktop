@@ -89,5 +89,6 @@ export type {
   PackageJsonSummary,
   DetectedStack,
   ConfigFileInfo,
-  EntryPointInfo
+  EntryPointInfo,
+  AppSettings
 } from '../../../preload/index'

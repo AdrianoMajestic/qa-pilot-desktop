@@ -9,8 +9,16 @@ import {
   type ConfigFileInfo,
   type EntryPointInfo
 } from '../services/projectParser'
+import { getSettings, saveSettings, type AppSettings } from '../services/settingsStore'
 
-export type { ProjectContext, PackageJsonSummary, DetectedStack, ConfigFileInfo, EntryPointInfo }
+export type {
+  ProjectContext,
+  PackageJsonSummary,
+  DetectedStack,
+  ConfigFileInfo,
+  EntryPointInfo,
+  AppSettings
+}
 
 export interface FileNode {
   name: string
@@ -221,6 +229,18 @@ export function registerIpcHandlers(): void {
     'project:parse-context',
     async (_event, projectPath: string): Promise<ProjectContext> => {
       return await parseProjectContext(projectPath)
+    }
+  )
+
+  // Persistent Settings Handlers
+  ipcMain.handle('settings:get', async (): Promise<AppSettings> => {
+    return getSettings()
+  })
+
+  ipcMain.handle(
+    'settings:save',
+    async (_event, newSettings: Partial<AppSettings>): Promise<AppSettings> => {
+      return saveSettings(newSettings)
     }
   )
 }

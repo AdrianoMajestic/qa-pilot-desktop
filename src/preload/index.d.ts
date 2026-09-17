@@ -89,12 +89,20 @@ export interface ProjectContext {
   error?: string
 }
 
+export interface AppSettings {
+  geminiApiKey: string
+  playwrightHeadless: boolean
+  testTimeoutMs: number
+}
+
 export interface CustomAPI {
   ping: () => Promise<string>
   getSystemInfo: () => Promise<SystemInfo>
   selectProject: () => Promise<ProjectScanResult>
   parseProjectContext: (projectPath: string) => Promise<ProjectContext>
   runPlaywrightWorker: (suite?: string) => Promise<PlaywrightRunResult>
+  getSettings: () => Promise<AppSettings>
+  saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>
 }
 
 declare global {

@@ -1,15 +1,20 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Topbar } from './components/Topbar'
 import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './components/Dashboard'
 import { ConsoleLogs } from './components/ConsoleLogs'
+import { SettingsModal } from './components/SettingsModal'
 import { useSystemStatus } from './hooks/useSystemStatus'
 import { electronService } from './services/electronService'
-import type { LogEntry, FileNode, ProjectStats } from './types'
+import type { LogEntry, FileNode, ProjectStats, AppSettings } from './types'
 
 export default function App(): React.JSX.Element {
   const { status, loading } = useSystemStatus()
   const [activeTab, setActiveTab] = useState('dashboard')
+
+  // Application Settings State
+  const [settings, setSettings] = useState<AppSettings | null>(null)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   // Project Scanner State
   const [projectPath, setProjectPath] = useState<string | null>(null)
@@ -52,6 +57,31 @@ export default function App(): React.JSX.Element {
   const clearLogs = useCallback(() => {
     setLogs([])
   }, [])
+
+  // Pre-load settings on initial app load
+  useEffect(() => {
+    electronService
+      .getSettings()
+      .then((loaded) => {
+        setSettings(loaded)
+      })
+      .catch((err) => {
+        addLog(
+          `Ошибка загрузки конфигурации: ${err instanceof Error ? err.message : 'Сбой'}`,
+          'warn',
+          'Настройки'
+        )
+      })
+  }, [addLog])
+
+  const handleSaveSettings = useCallback(
+    async (newSettings: Partial<AppSettings>) => {
+      const saved = await electronService.saveSettings(newSettings)
+      setSettings(saved)
+      addLog('Настройки приложения успешно сохранены.', 'success', 'Настройки')
+    },
+    [addLog]
+  )
 
   const handleSelectProject = useCallback(async () => {
     setIsScanning(true)
@@ -119,6 +149,7 @@ export default function App(): React.JSX.Element {
         projectPath={projectPath}
         isScanning={isScanning}
         onSelectProject={handleSelectProject}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* Основная рабочая область */}
@@ -150,6 +181,14 @@ export default function App(): React.JSX.Element {
           <ConsoleLogs logs={logs} onClearLogs={clearLogs} />
         </main>
       </div>
+
+      {/* Модальное окно настроек */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentSettings={settings}
+        onSave={handleSaveSettings}
+      />
     </div>
   )
 }

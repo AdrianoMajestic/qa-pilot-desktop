@@ -84,13 +84,15 @@
 
 ## 4. Контракт IPC каналов
 
-| Канал                   | Направление      | Описание                                                 | Сигнатура данных                                               |
-| :---------------------- | :--------------- | :------------------------------------------------------- | :------------------------------------------------------------- |
-| `app:ping`              | Renderer -> Main | Проверка доступности IPC моста                           | `() => Promise<string>`                                        |
-| `app:get-system-info`   | Renderer -> Main | Получение версий среды (Node, Electron, OS, Chrome)      | `() => Promise<SystemInfo>`                                    |
-| `dialog:select-project` | Renderer -> Main | Нативный диалог выбора папки + рекурсивный сканер файлов | `() => Promise<ProjectScanResult>`                             |
-| `worker:playwright-run` | Renderer -> Main | Триггер запуска тестового сценария Playwright            | `(params: { suite?: string }) => Promise<PlaywrightRunResult>` |
-| `project:parse-context` | Renderer -> Main | Селективный парсер исходного кода и конфигов для AI      | `(projectPath: string) => Promise<ProjectContext>`             |
+| Канал                   | Направление      | Описание                                                  | Сигнатура данных                                               |
+| :---------------------- | :--------------- | :-------------------------------------------------------- | :------------------------------------------------------------- |
+| `app:ping`              | Renderer -> Main | Проверка доступности IPC моста                            | `() => Promise<string>`                                        |
+| `app:get-system-info`   | Renderer -> Main | Получение версий среды (Node, Electron, OS, Chrome)       | `() => Promise<SystemInfo>`                                    |
+| `dialog:select-project` | Renderer -> Main | Нативный диалог выбора папки + рекурсивный сканер файлов  | `() => Promise<ProjectScanResult>`                             |
+| `worker:playwright-run` | Renderer -> Main | Триггер запуска тестового сценария Playwright             | `(params: { suite?: string }) => Promise<PlaywrightRunResult>` |
+| `project:parse-context` | Renderer -> Main | Селективный парсер исходного кода и конфигов для AI       | `(projectPath: string) => Promise<ProjectContext>`             |
+| `settings:get`          | Renderer -> Main | Чтение персистентных настроек из `userData/settings.json` | `() => Promise<AppSettings>`                                   |
+| `settings:save`         | Renderer -> Main | Сохранение настроек в `userData/settings.json`            | `(settings: Partial<AppSettings>) => Promise<AppSettings>`     |
 
 ---
 
