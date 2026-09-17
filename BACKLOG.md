@@ -26,7 +26,7 @@
 
 ## 3. `[CORE ENGINE]` (Ядро тестирования и краулер)
 
-- [ ] Интеграция и конфигурация Playwright Test Runner (активация headed mode по умолчанию, выбор браузеров Chromium/Firefox/WebKit)
+- [x] Интеграция и конфигурация Playwright Test Runner (активация headed mode по умолчанию, выбор браузеров Chromium/Firefox/WebKit)
 - [ ] Модуль автоматизированного обхода веб-приложения и эмуляции пользовательских действий (автокраулер страниц и форм)
 - [ ] Логгер перехвата сетевых сбоев HTTP 500+ и крашей браузерной консоли (JS console errors, uncaught exceptions)
 

@@ -72,9 +72,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Welcome Banner */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 border border-slate-800/80 p-6 shadow-xl">
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium mb-3">
-            <span>Electron + React + TypeScript + Tailwind</span>
-          </div>
           <h2 className="text-xl font-bold text-slate-100 tracking-tight">
             QA Pilot Desktop — Платформа автоматизации тестирования
           </h2>
