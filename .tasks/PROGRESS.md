@@ -31,6 +31,8 @@
 - [x] Зарегистрировать обработчик IPC-канала `project:parse-context` (`src/main/ipc/handlers.ts`)
 - [x] Реализовать сервис `src/main/services/loggerService.ts` для потоковой передачи событий воркеров и логов в реальном времени через `webContents.send('stream:log-event')`
 - [x] Зарегистрировать обработчик диагностического IPC-канала `app:trigger-test-log` (`src/main/ipc/handlers.ts`)
+- [x] Реализовать сервис настроек `src/main/services/settingsService.ts` и `settingsStore.ts` для персистентного хранения конфигурации приложения в `settings.json` (`app.getPath('userData')`)
+- [x] Зарегистрировать IPC-обработчики `settings:get` и `settings:save` в `src/main/ipc/handlers.ts`
 
 ### 3. Preload Bridge и типизация (`src/preload/`, `src/renderer/src/types/`, `src/shared/types/`)
 
@@ -40,8 +42,10 @@
 - [x] Описать строгие TypeScript-интерфейсы `FileNode`, `ProjectStats`, `ProjectScanResult` (без `any`)
 - [x] Описать строгие TypeScript-интерфейсы `ProjectContext`, `PackageJsonSummary`, `DetectedStack`, `ConfigFileInfo`, `EntryPointInfo`
 - [x] Описать строгие TypeScript-интерфейсы `LogLevel`, `LogSource`, `LogEvent`
+- [x] Описать строгий интерфейс `AppSettings` в `src/shared/types` и константы каналов `SETTINGS_GET`, `SETTINGS_SAVE`
 - [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить методы `window.api.getSettings()` и `window.api.saveSettings()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод потоковой подписки `window.api.onLogEvent(callback)` с обязательной функцией отписки `removeListener` для защиты от утечек памяти
 - [x] Добавить метод вызова `window.api.triggerTestLog()`
 - [x] Экспортировать `window.electronAPI` для совместимости
@@ -54,8 +58,9 @@
 - [x] `Sidebar.tsx`: полная русификация навигации, рекурсивная визуализация дерева файлов со сворачиванием/разворачиванием папок и иконками типов файлов
 - [x] `Dashboard.tsx`: полная русификация, блок статистики проекта (путь, файлы, JS/TS файлы, JSON, папки), кнопка выбора проекта
 - [x] `ConsoleLogs.tsx`: полная русификация элементов управления и статусов (ИНФО, ПРЕД, ОШИБ, УСПЕХ), бейджи источников (Playwright, Краулер, Gemini AI, Система), кнопка вызова тестового импульса IPC
+- [x] `SettingsModal.tsx`: полноценное модальное окно настроек (ввод и безопасный просмотр Gemini API Key, переключатель Headless/Headed режима браузера Playwright, настройка таймаута тестов в секундах, валидация и уведомления)
 - [x] `useLogStream.ts`: кастомный хук подписки на поток IPC-логов с автоматической отпиской при размонтировании
-- [x] `App.tsx`: централизованное управление состоянием проекта, форматированные логи процесса сканирования с временными метками
+- [x] `App.tsx`: централизованное управление состоянием проекта, синхронизация настроек с главным процессом через `electronService`, форматированные логи процесса сканирования с временными метками
 
 ### 5. Виджеты визуального дашборда (Visual Dashboard Widgets)
 
@@ -74,6 +79,16 @@
 ---
 
 ## Журнал изменений (Changelog)
+
+- **17.09.2026 (Сервис постоянных настроек и интеграция модального окна SettingsModal)**:
+  - Формализован интерфейс `AppSettings` (`geminiApiKey`, `playwrightHeadless`, `testTimeoutMs`) в `@shared/types` и добавлены константы каналов `SETTINGS_GET`, `SETTINGS_SAVE`.
+  - Создан сервис `src/main/services/settingsService.ts` с асинхронными методами `getSettings()` и `saveSettings(partial)`, использующий надежное атомарное хранение в `userData/settings.json` (`settingsStore.ts`).
+  - Зарегистрированы IPC-обработчики `IPC_CHANNELS.SETTINGS_GET` и `IPC_CHANNELS.SETTINGS_SAVE` в `src/main/ipc/handlers.ts`.
+  - В Preload-мосте `src/preload/index.ts` и `src/preload/index.d.ts` реализованы методы `getSettings` и `saveSettings` в интерфейсе `CustomAPI`.
+  - В `src/renderer/src/services/electronService.ts` добавлены методы вызова моста с безопасным браузерным web-fallback.
+  - В `App.tsx` завершена интеграция модального окна `SettingsModal`, загрузка настроек при старте и сохранение изменений с логированием в консоль.
+  - Обновлен контракт IPC каналов в `ARCHITECTURE.md`.
+  - Проведена полная проверка качества: `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm build` завершились успешно с кодом 0.
 
 - **17.09.2026 (Устранение нарушений границ проектов TypeScript и выделение `src/shared/types`)**:
   - Создан выделенный модуль чистых типов `src/shared/types/index.ts` и корневой модуль `src/shared/index.ts` с нулевыми рантайм-зависимостями.

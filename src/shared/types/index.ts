@@ -137,7 +137,17 @@ export interface TriggerTestLogParams {
 }
 
 // ==========================================
-// 6. IPC Channels Protocol
+// 6. Application Settings & Preferences
+// ==========================================
+
+export interface AppSettings {
+  geminiApiKey: string
+  playwrightHeadless: boolean
+  testTimeoutMs: number
+}
+
+// ==========================================
+// 7. IPC Channels Protocol
 // ==========================================
 
 export const IPC_CHANNELS = {
@@ -147,13 +157,15 @@ export const IPC_CHANNELS = {
   PARSE_PROJECT_CONTEXT: 'project:parse-context',
   PLAYWRIGHT_RUN: 'worker:playwright-run',
   STREAM_LOG_EVENT: 'stream:log-event',
-  TRIGGER_TEST_LOG: 'app:trigger-test-log'
+  TRIGGER_TEST_LOG: 'app:trigger-test-log',
+  SETTINGS_GET: 'settings:get',
+  SETTINGS_SAVE: 'settings:save'
 } as const
 
 export type IpcChannelName = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
 
 // ==========================================
-// 7. Typed Electron Bridge API
+// 8. Typed Electron Bridge API
 // ==========================================
 
 export interface CustomAPI {
@@ -164,6 +176,8 @@ export interface CustomAPI {
   runPlaywrightWorker: (suite?: string) => Promise<PlaywrightRunResult>
   onLogEvent: (callback: (event: LogEvent) => void) => () => void
   triggerTestLog: (params?: TriggerTestLogParams) => Promise<LogEvent>
+  getSettings: () => Promise<AppSettings>
+  saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>
 }
 
 /**

@@ -103,6 +103,8 @@
 | `project:parse-context` | Renderer -> Main | Селективный парсер исходного кода и конфигов для AI      | `(projectPath: string) => Promise<ProjectContext>`             |
 | `stream:log-event`      | Main -> Renderer | Потоковая передача логов и событий воркеров              | `(payload: LogEvent) => void`                                  |
 | `app:trigger-test-log`  | Renderer -> Main | Диагностический триггер события логов реального времени  | `(params?: TestLogParams) => Promise<LogEvent>`                |
+| `settings:get`          | Renderer -> Main | Чтение сохраненных настроек приложения (userData)        | `() => Promise<AppSettings>`                                   |
+| `settings:save`         | Renderer -> Main | Сохранение и слияние настроек приложения в JSON на диске | `(newSettings: Partial<AppSettings>) => Promise<AppSettings>`  |
 
 ---
 

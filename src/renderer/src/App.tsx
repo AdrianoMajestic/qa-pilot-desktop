@@ -7,7 +7,7 @@ import { SettingsModal } from './components/SettingsModal'
 import { useSystemStatus } from './hooks/useSystemStatus'
 import { useLogStream } from './hooks/useLogStream'
 import { electronService } from './services/electronService'
-import type { FileNode, ProjectStats } from './types'
+import type { FileNode, ProjectStats, AppSettings } from './types'
 
 export default function App(): React.JSX.Element {
   const { status, loading } = useSystemStatus()
@@ -22,6 +22,31 @@ export default function App(): React.JSX.Element {
   const [fileTree, setFileTree] = useState<FileNode | null>(null)
   const [projectStats, setProjectStats] = useState<ProjectStats | null>(null)
   const [isScanning, setIsScanning] = useState(false)
+
+  // Settings State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [settings, setSettings] = useState<AppSettings | null>(null)
+
+  // Load initial settings on component mount
+  useEffect(() => {
+    electronService
+      .getSettings()
+      .then((loadedSettings) => {
+        setSettings(loadedSettings)
+      })
+      .catch((err) => {
+        console.error('Failed to load initial settings:', err)
+      })
+  }, [])
+
+  const handleSaveSettings = useCallback(
+    async (newSettings: Partial<AppSettings>) => {
+      const updated = await electronService.saveSettings(newSettings)
+      setSettings(updated)
+      addLog('Настройки приложения успешно сохранены.', 'success', 'Система')
+    },
+    [addLog]
+  )
 
   const handleSelectProject = useCallback(async () => {
     setIsScanning(true)

@@ -13,10 +13,12 @@ import {
   type EntryPointInfo,
   type LogLevel,
   type LogSource,
-  type LogEvent
+  type LogEvent,
+  type AppSettings
 } from '@shared/types'
 import { parseProjectContext } from '../services/projectParser'
 import { loggerService } from '../services/loggerService'
+import { getSettings, saveSettings } from '../services/settingsService'
 
 export type {
   FileNode,
@@ -29,7 +31,8 @@ export type {
   EntryPointInfo,
   LogLevel,
   LogSource,
-  LogEvent
+  LogEvent,
+  AppSettings
 }
 
 const IGNORED_NAMES = new Set<string>([
@@ -252,12 +255,12 @@ export function registerIpcHandlers(): void {
   )
 
   // Persistent Settings Handlers
-  ipcMain.handle('settings:get', async (): Promise<AppSettings> => {
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, async (): Promise<AppSettings> => {
     return getSettings()
   })
 
   ipcMain.handle(
-    'settings:save',
+    IPC_CHANNELS.SETTINGS_SAVE,
     async (_event, newSettings: Partial<AppSettings>): Promise<AppSettings> => {
       return saveSettings(newSettings)
     }
