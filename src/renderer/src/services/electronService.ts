@@ -1,4 +1,9 @@
-import type { SystemInfo, PlaywrightRunResult, ProjectScanResult } from '../types'
+import type {
+  SystemInfo,
+  PlaywrightRunResult,
+  ProjectScanResult,
+  ProjectContext
+} from '../../../preload/index'
 
 class ElectronService {
   private isElectronAvailable(): boolean {
@@ -31,6 +36,30 @@ class ElectronService {
     }
     return {
       canceled: true,
+      error: 'Electron API недоступен в web-режиме'
+    }
+  }
+
+  async parseProjectContext(projectPath: string): Promise<ProjectContext> {
+    if (this.isElectronAvailable() && typeof window.api.parseProjectContext === 'function') {
+      return await window.api.parseProjectContext(projectPath)
+    }
+    return {
+      projectPath,
+      projectName: 'web-fallback',
+      timestamp: new Date().toISOString(),
+      hasPackageJson: false,
+      detectedStack: {
+        frameworks: ['React'],
+        testRunners: ['Playwright'],
+        language: 'TypeScript',
+        hasTypeScript: true,
+        hasTailwind: true,
+        buildTools: ['Vite']
+      },
+      configFiles: [],
+      entryPoints: [],
+      summary: 'Web fallback: Electron IPC недоступен в браузерной среде.',
       error: 'Electron API недоступен в web-режиме'
     }
   }

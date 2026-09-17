@@ -2,7 +2,7 @@
 
 ## Текущий статус проекта
 
-- **Фаза:** Реализованы UI-виджеты визуального дашборда (Overall Score & Health Radar), локальный сканер проектов, русская локализация UI и IPC-мост.
+- **Фаза:** Реализован селективный парсер исходного кода для контекста Gemini AI, UI-виджеты дашборда, сканер проектов и IPC-мост.
 - **Дата обновления:** 17 сентября 2026 г.
 
 ## Регламент работы
@@ -27,13 +27,18 @@
 - [x] Реализовать рекурсивный обход директорий с исключением: `node_modules`, `.git`, `dist`, `build`, `.next`, `out`, `.vscode`, `pnpm-lock.yaml`, `package-lock.json`, `coverage`
 - [x] Реализовать расчет статистики: общее количество файлов, папок, JS/TS файлов, JSON файлов
 - [x] Обеспечить безопасный парсинг дерева файлов в JSON без циклических ссылок
+- [x] Реализовать сервис селективного парсера кода `src/main/services/projectParser.ts` с безопасным чтением файлов (лимит 100 КБ) и автоматической детекцией стека (React, Next.js, Vue, Playwright, Jest, Vitest, Cypress, TypeScript, Tailwind)
+- [x] Зарегистрировать обработчик IPC-канала `project:parse-context` (`src/main/ipc/handlers.ts`)
 
 ### 3. Preload Bridge и типизация (`src/preload/`, `src/renderer/src/types/`)
 
 - [x] Описать строгие TypeScript-интерфейсы `FileNode`, `ProjectStats`, `ProjectScanResult` (без `any`)
+- [x] Описать строгие TypeScript-интерфейсы `ProjectContext`, `PackageJsonSummary`, `DetectedStack`, `ConfigFileInfo`, `EntryPointInfo`
 - [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
-- [x] Интегрировать метод в `src/renderer/src/services/electronService.ts` с безопасным fallback для web-среды
-- [x] Добавить типы состояния проекта в `src/renderer/src/types/index.ts`
+- [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Экспортировать `window.electronAPI` для совместимости
+- [x] Интегрировать метод `parseProjectContext` в `src/renderer/src/services/electronService.ts` с безопасным fallback для web-среды
+- [x] Добавить типы состояния проекта и контекста в `src/renderer/src/types/index.ts`
 
 ### 4. Русская локализация и интеграция UI (`src/renderer/src/`)
 
@@ -60,6 +65,16 @@
 ---
 
 ## Журнал изменений (Changelog)
+
+- **17.09.2026 (Селективный парсер исходного кода для Gemini AI)**:
+  - Создан сервис `src/main/services/projectParser.ts`: безопасное чтение `package.json`, конфигурационных файлов (`playwright.config.*`, `tsconfig*.json`, `vite.config.*`, `next.config.*`, `tailwind.config.*`, `eslint.config.*`) и точек входа (`src/main.tsx`, `src/App.tsx`, `src/index.ts`, `src/main/index.ts`) с лимитом размера 100 КБ и защитой от зависания памяти.
+  - Реализован анализатор технологического стека `detectStack`: автоматическое определение фреймворков (`React`, `Electron`, `Vue`, `Next.js`), тестовых раннеров (`Playwright`, `Jest`, `Vitest`, `Cypress`), языка (`TypeScript`/`JavaScript`), стилей (`Tailwind CSS`) и сборщиков (`electron-vite`, `Vite`, `Webpack`).
+  - Генерация markdown-саммари `buildMarkdownSummary` для контекстной инъекции в Google Gemini API.
+  - Зарегистрирован IPC-канал `project:parse-context` в `src/main/ipc/handlers.ts`.
+  - Обновлены типы и мост в `src/preload/index.ts` и `src/preload/index.d.ts` (`parseProjectContext`, `window.api`, `window.electronAPI`).
+  - Добавлен метод `parseProjectContext` с web-fallback в `src/renderer/src/services/electronService.ts`.
+  - Обновлен `BACKLOG.md` (отмечена задача селективного парсера) и таблица IPC каналов в `ARCHITECTURE.md`.
+  - Успешно протестирована работа парсера, валидация `pnpm typecheck`, `pnpm lint`, `pnpm build` завершилась с кодом 0.
 
 - **17.09.2026**:
   - Создан `src/renderer/src/types/dashboard.types.ts`: формализованы типы данных `OverallScoreData`, `HealthRadarData`, `RadarAxisMetric`, `ScoreTrend`, `ScoreBreakdown` и props для виджетов.
