@@ -13,6 +13,12 @@ import {
 
 export * from '@shared/types'
 
+export interface AppSettings {
+  geminiApiKey: string
+  playwrightHeadless: boolean
+  testTimeoutMs: number
+}
+
 // Custom typed APIs exposed to the renderer process
 export const api: CustomAPI = {
   ping: (): Promise<string> => ipcRenderer.invoke(IPC_CHANNELS.PING),

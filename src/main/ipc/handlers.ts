@@ -250,4 +250,16 @@ export function registerIpcHandlers(): void {
       return loggerService.broadcast(level, source, message, params?.details)
     }
   )
+
+  // Persistent Settings Handlers
+  ipcMain.handle('settings:get', async (): Promise<AppSettings> => {
+    return getSettings()
+  })
+
+  ipcMain.handle(
+    'settings:save',
+    async (_event, newSettings: Partial<AppSettings>): Promise<AppSettings> => {
+      return saveSettings(newSettings)
+    }
+  )
 }

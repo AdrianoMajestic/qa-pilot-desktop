@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Topbar } from './components/Topbar'
 import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './components/Dashboard'
 import { ConsoleLogs } from './components/ConsoleLogs'
+import { SettingsModal } from './components/SettingsModal'
 import { useSystemStatus } from './hooks/useSystemStatus'
 import { useLogStream } from './hooks/useLogStream'
 import { electronService } from './services/electronService'
@@ -88,6 +89,7 @@ export default function App(): React.JSX.Element {
         projectPath={projectPath}
         isScanning={isScanning}
         onSelectProject={handleSelectProject}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* Основная рабочая область */}
@@ -129,6 +131,14 @@ export default function App(): React.JSX.Element {
           />
         </main>
       </div>
+
+      {/* Модальное окно настроек */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentSettings={settings}
+        onSave={handleSaveSettings}
+      />
     </div>
   )
 }
