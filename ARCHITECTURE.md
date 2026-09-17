@@ -59,8 +59,18 @@
 - **Назначение:** Пользовательский интерфейс на базе React 19 и Tailwind CSS.
 - **Строгие ограничения:**
   - **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** импортировать `fs`, `path`, `child_process`, `electron` или любые Node.js built-ins.
+  - **ЗАПРЕЩЕНО напрямую импортировать файлы из `src/preload`** (`src/preload/index.ts` и др.). Это нарушает границы проекта TypeScript (`tsconfig.web.json`), подмешивает код моста в граф бандла рендерера и ломает строгую изоляцию.
+  - Все необходимые кросс-процессные типы импортируются исключительно из `@shared/types`.
   - Взаимодействие с системным бэкендом осуществляется через фасад `src/renderer/src/services/electronService.ts`, обращающийся к `window.api`.
   - Должна сохраняться корректная работа в web-окружении (web-fallback при отсутствии `window.api`).
+
+### 1.4. Общий модуль типов (`src/shared/types`)
+
+- **Назначение:** Единый источник правды для чистых интерфейсов, типов IPC-полезной нагрузки, контрактов каналов и моделей данных, совместно используемых процессами `main`, `preload` и `renderer`.
+- **Правила:**
+  - Модуль содержит **исключительно декларативные TypeScript-типы и интерфейсы** (zero runtime Node/Electron dependencies).
+  - Конфигурации компилятора (`tsconfig.node.json`, `tsconfig.web.json`) и сборщика (`electron.vite.config.ts`) мапят алиас `@shared/*` -> `src/shared/*`.
+  - Никакой исполняемый код, за исключением сериализуемых констант протокола (например, `IPC_CHANNELS`), в `src/shared/` не размещается.
 
 ---
 
@@ -84,15 +94,15 @@
 
 ## 4. Контракт IPC каналов
 
-| Канал                   | Направление      | Описание                                                  | Сигнатура данных                                               |
-| :---------------------- | :--------------- | :-------------------------------------------------------- | :------------------------------------------------------------- |
-| `app:ping`              | Renderer -> Main | Проверка доступности IPC моста                            | `() => Promise<string>`                                        |
-| `app:get-system-info`   | Renderer -> Main | Получение версий среды (Node, Electron, OS, Chrome)       | `() => Promise<SystemInfo>`                                    |
-| `dialog:select-project` | Renderer -> Main | Нативный диалог выбора папки + рекурсивный сканер файлов  | `() => Promise<ProjectScanResult>`                             |
-| `worker:playwright-run` | Renderer -> Main | Триггер запуска тестового сценария Playwright             | `(params: { suite?: string }) => Promise<PlaywrightRunResult>` |
-| `project:parse-context` | Renderer -> Main | Селективный парсер исходного кода и конфигов для AI       | `(projectPath: string) => Promise<ProjectContext>`             |
-| `settings:get`          | Renderer -> Main | Чтение персистентных настроек из `userData/settings.json` | `() => Promise<AppSettings>`                                   |
-| `settings:save`         | Renderer -> Main | Сохранение настроек в `userData/settings.json`            | `(settings: Partial<AppSettings>) => Promise<AppSettings>`     |
+| Канал                   | Направление      | Описание                                                 | Сигнатура данных                                               |
+| :---------------------- | :--------------- | :------------------------------------------------------- | :------------------------------------------------------------- |
+| `app:ping`              | Renderer -> Main | Проверка доступности IPC моста                           | `() => Promise<string>`                                        |
+| `app:get-system-info`   | Renderer -> Main | Получение версий среды (Node, Electron, OS, Chrome)      | `() => Promise<SystemInfo>`                                    |
+| `dialog:select-project` | Renderer -> Main | Нативный диалог выбора папки + рекурсивный сканер файлов | `() => Promise<ProjectScanResult>`                             |
+| `worker:playwright-run` | Renderer -> Main | Триггер запуска тестового сценария Playwright            | `(params: { suite?: string }) => Promise<PlaywrightRunResult>` |
+| `project:parse-context` | Renderer -> Main | Селективный парсер исходного кода и конфигов для AI      | `(projectPath: string) => Promise<ProjectContext>`             |
+| `stream:log-event`      | Main -> Renderer | Потоковая передача логов и событий воркеров              | `(payload: LogEvent) => void`                                  |
+| `app:trigger-test-log`  | Renderer -> Main | Диагностический триггер события логов реального времени  | `(params?: TestLogParams) => Promise<LogEvent>`                |
 
 ---
 

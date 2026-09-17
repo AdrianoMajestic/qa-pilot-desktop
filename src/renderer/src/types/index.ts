@@ -8,20 +8,6 @@ export interface SystemStatus {
   chromeVersion?: string
 }
 
-export interface SystemInfo {
-  platform: string
-  arch: string
-  nodeVersion: string
-  electronVersion: string
-  chromeVersion: string
-}
-
-export interface PlaywrightRunResult {
-  success: boolean
-  message: string
-  timestamp: string
-}
-
 export interface LogEntry {
   id: string
   timestamp: string
@@ -47,48 +33,13 @@ export interface TestSuiteSummary {
   passedTests: number
 }
 
-export interface FileNode {
-  name: string
-  path: string
-  relativePath: string
-  isDirectory: boolean
-  extension?: string
-  size?: number
-  children?: FileNode[]
-}
-
-export interface ProjectStats {
-  totalFiles: number
-  totalFolders: number
-  jsTsFilesCount: number
-  jsonFilesCount: number
-  codeFilesCount: number
-}
-
-export interface ProjectScanResult {
-  canceled: boolean
-  projectPath?: string
-  projectName?: string
-  fileTree?: FileNode
-  stats?: ProjectStats
-  error?: string
-}
-
 export interface ProjectState {
   projectPath: string | null
   projectName: string | null
-  fileTree: FileNode | null
-  stats: ProjectStats | null
+  fileTree: import('@shared/types').FileNode | null
+  stats: import('@shared/types').ProjectStats | null
   isScanning: boolean
 }
 
 export * from './dashboard.types'
-
-export type {
-  ProjectContext,
-  PackageJsonSummary,
-  DetectedStack,
-  ConfigFileInfo,
-  EntryPointInfo,
-  AppSettings
-} from '../../../preload/index'
+export * from '@shared/types'

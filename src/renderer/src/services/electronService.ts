@@ -3,8 +3,10 @@ import type {
   PlaywrightRunResult,
   ProjectScanResult,
   ProjectContext,
-  AppSettings
-} from '../../../preload/index'
+  LogEvent,
+  LogLevel,
+  LogSource
+} from '@shared/types'
 
 class ElectronService {
   private isElectronAvailable(): boolean {
@@ -76,59 +78,36 @@ class ElectronService {
     }
   }
 
-  async getSettings(): Promise<AppSettings> {
-    if (this.isElectronAvailable() && typeof window.api.getSettings === 'function') {
-      return await window.api.getSettings()
+  /**
+   * Subscribes to real-time Main process log streaming events via Preload bridge.
+   * Returns a cleanup function that detaches the IPC listener.
+   */
+  onLogEvent(callback: (event: LogEvent) => void): () => void {
+    if (this.isElectronAvailable() && typeof window.api.onLogEvent === 'function') {
+      return window.api.onLogEvent(callback)
     }
-    try {
-      const stored = localStorage.getItem('qa_pilot_settings')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        return {
-          geminiApiKey: typeof parsed.geminiApiKey === 'string' ? parsed.geminiApiKey : '',
-          playwrightHeadless:
-            typeof parsed.playwrightHeadless === 'boolean' ? parsed.playwrightHeadless : false,
-          testTimeoutMs:
-            typeof parsed.testTimeoutMs === 'number' && parsed.testTimeoutMs > 0
-              ? parsed.testTimeoutMs
-              : 30000
-        }
-      }
-    } catch {
-      // ignore
-    }
-    return {
-      geminiApiKey: '',
-      playwrightHeadless: false,
-      testTimeoutMs: 30000
-    }
+    return () => {}
   }
 
-  async saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
-    if (this.isElectronAvailable() && typeof window.api.saveSettings === 'function') {
-      return await window.api.saveSettings(settings)
+  /**
+   * Triggers a diagnostic log event through IPC to verify real-time stream execution.
+   */
+  async triggerTestLog(params?: {
+    message?: string
+    level?: LogLevel
+    source?: LogSource
+    details?: Record<string, unknown>
+  }): Promise<LogEvent> {
+    if (this.isElectronAvailable() && typeof window.api.triggerTestLog === 'function') {
+      return await window.api.triggerTestLog(params)
     }
-    const current = await this.getSettings()
-    const updated: AppSettings = {
-      geminiApiKey:
-        typeof settings.geminiApiKey === 'string'
-          ? settings.geminiApiKey.trim()
-          : current.geminiApiKey,
-      playwrightHeadless:
-        typeof settings.playwrightHeadless === 'boolean'
-          ? settings.playwrightHeadless
-          : current.playwrightHeadless,
-      testTimeoutMs:
-        typeof settings.testTimeoutMs === 'number' && settings.testTimeoutMs > 0
-          ? Math.round(settings.testTimeoutMs)
-          : current.testTimeoutMs
+    return {
+      id: `mock-log-${Date.now()}`,
+      timestamp: Date.now(),
+      level: params?.level ?? 'info',
+      source: params?.source ?? 'system',
+      message: params?.message ?? 'Simulated test log in web-fallback'
     }
-    try {
-      localStorage.setItem('qa_pilot_settings', JSON.stringify(updated))
-    } catch {
-      // ignore
-    }
-    return updated
   }
 }
 

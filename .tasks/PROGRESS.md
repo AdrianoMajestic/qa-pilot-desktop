@@ -2,7 +2,7 @@
 
 ## Текущий статус проекта
 
-- **Фаза:** Реализовано модальное окно настроек и персистентное хранилище настроек (Gemini API Key, Playwright Headless, таймауты), селективный парсер кода, виджеты дашборда и IPC-мост.
+- **Фаза:** Реализован механизм потоковой передачи логов и событий воркеров в реальном времени (IPC Streaming), селективный парсер кода для Gemini AI, дашборд и сканер.
 - **Дата обновления:** 17 сентября 2026 г.
 
 ## Регламент работы
@@ -29,30 +29,33 @@
 - [x] Обеспечить безопасный парсинг дерева файлов в JSON без циклических ссылок
 - [x] Реализовать сервис селективного парсера кода `src/main/services/projectParser.ts` с безопасным чтением файлов (лимит 100 КБ) и автоматической детекцией стека (React, Next.js, Vue, Playwright, Jest, Vitest, Cypress, TypeScript, Tailwind)
 - [x] Зарегистрировать обработчик IPC-канала `project:parse-context` (`src/main/ipc/handlers.ts`)
-- [x] Реализовать сервис персистентного хранения настроек `src/main/services/settingsStore.ts` (`app.getPath('userData')/settings.json`)
-- [x] Зарегистрировать обработчики IPC-каналов `settings:get` и `settings:save` (`src/main/ipc/handlers.ts`)
+- [x] Реализовать сервис `src/main/services/loggerService.ts` для потоковой передачи событий воркеров и логов в реальном времени через `webContents.send('stream:log-event')`
+- [x] Зарегистрировать обработчик диагностического IPC-канала `app:trigger-test-log` (`src/main/ipc/handlers.ts`)
 
-### 3. Preload Bridge и типизация (`src/preload/`, `src/renderer/src/types/`)
+### 3. Preload Bridge и типизация (`src/preload/`, `src/renderer/src/types/`, `src/shared/types/`)
 
+- [x] Создать единый изолированный модуль чистых типов `src/shared/types/` и корневой модуль `src/shared/index.ts` (zero runtime dependencies)
+- [x] Настроить скоупы и алиасы `@shared/*` в `tsconfig.node.json`, `tsconfig.web.json` и `electron.vite.config.ts`
+- [x] Устранить нарушение границ проекта TypeScript: убрать все относительные импорты `../../../preload/index` из `src/renderer/`
 - [x] Описать строгие TypeScript-интерфейсы `FileNode`, `ProjectStats`, `ProjectScanResult` (без `any`)
 - [x] Описать строгие TypeScript-интерфейсы `ProjectContext`, `PackageJsonSummary`, `DetectedStack`, `ConfigFileInfo`, `EntryPointInfo`
-- [x] Описать строгий TypeScript-интерфейс `AppSettings` (`geminiApiKey`, `playwrightHeadless`, `testTimeoutMs`)
+- [x] Описать строгие TypeScript-интерфейсы `LogLevel`, `LogSource`, `LogEvent`
 - [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
-- [x] Добавить методы `window.api.getSettings()` и `window.api.saveSettings()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить метод потоковой подписки `window.api.onLogEvent(callback)` с обязательной функцией отписки `removeListener` для защиты от утечек памяти
+- [x] Добавить метод вызова `window.api.triggerTestLog()`
 - [x] Экспортировать `window.electronAPI` для совместимости
-- [x] Интегрировать метод `parseProjectContext` в `src/renderer/src/services/electronService.ts` с безопасным fallback для web-среды
-- [x] Интегрировать методы `getSettings` и `saveSettings` в `src/renderer/src/services/electronService.ts` с web-fallback
-- [x] Добавить типы состояния проекта, контекста и настроек в `src/renderer/src/types/index.ts`
+- [x] Интегрировать методы в `src/renderer/src/services/electronService.ts` с безопасным fallback для web-среды
+- [x] Реэкспортировать общие типы в `src/renderer/src/types/index.ts` из `@shared/types`
 
 ### 4. Русская локализация и интеграция UI (`src/renderer/src/`)
 
 - [x] `Topbar.tsx`: полная русификация, кнопка "Выбрать проект" / "Открыть проект", кнопка "Настройки" с шестеренкой ⚙️, отображение имени открытого проекта
 - [x] `Sidebar.tsx`: полная русификация навигации, рекурсивная визуализация дерева файлов со сворачиванием/разворачиванием папок и иконками типов файлов
 - [x] `Dashboard.tsx`: полная русификация, блок статистики проекта (путь, файлы, JS/TS файлы, JSON, папки), кнопка выбора проекта
-- [x] `ConsoleLogs.tsx`: полная русификация элементов управления и статусов (ИНФО, ПРЕД, ОШИБ, УСПЕХ)
-- [x] `App.tsx`: централизованное управление состоянием проекта и настроек, предзагрузка настроек при старте, форматированные русскоязычные логи в консоль с временными метками при обновлении настроек
-- [x] `SettingsModal.tsx`: темное модальное окно настроек Tailwind CSS (поле Gemini API Key с переключателем видимости, свитч Headed/Headless режима Playwright, таймаут операций, сохранение и уведомление)
+- [x] `ConsoleLogs.tsx`: полная русификация элементов управления и статусов (ИНФО, ПРЕД, ОШИБ, УСПЕХ), бейджи источников (Playwright, Краулер, Gemini AI, Система), кнопка вызова тестового импульса IPC
+- [x] `useLogStream.ts`: кастомный хук подписки на поток IPC-логов с автоматической отпиской при размонтировании
+- [x] `App.tsx`: централизованное управление состоянием проекта, форматированные логи процесса сканирования с временными метками
 
 ### 5. Виджеты визуального дашборда (Visual Dashboard Widgets)
 
@@ -72,16 +75,26 @@
 
 ## Журнал изменений (Changelog)
 
-- **17.09.2026 (Модальное окно настроек и персистентное хранилище)**:
-  - Создан сервис `src/main/services/settingsStore.ts`: локальное хранение конфигурации `AppSettings` (`geminiApiKey`, `playwrightHeadless`, `testTimeoutMs`) в `app.getPath('userData')/settings.json` без внешних библиотек, с безопасным чтением, валидацией и слиянием частичных настроек.
-  - Зарегистрированы IPC-обработчики `settings:get` и `settings:save` в `src/main/ipc/handlers.ts`.
-  - Обновлен мост предзагрузки `src/preload/index.ts` и `src/preload/index.d.ts`: типизированы методы `window.api.getSettings` и `window.api.saveSettings`, объявлен интерфейс `AppSettings`.
-  - Добавлены методы `getSettings` и `saveSettings` с web-fallback (`localStorage`) в `src/renderer/src/services/electronService.ts`.
-  - Экспортирован тип `AppSettings` в `src/renderer/src/types/index.ts`.
-  - Создан компонент `src/renderer/src/components/SettingsModal.tsx`: стилизация Tailwind CSS в темной палитре, поле ввода Google Gemini API Key с переключателем видимости пароля, свитч Headed/Headless режима Playwright ("Показывать браузер при автоматическом тестировании"), поле ввода таймаута в секундах, валидация диапазона, закрытие по Esc и toast-уведомление об успешном сохранении.
-  - Интегрирована кнопка "Настройки" с шестеренкой ⚙️ в `src/renderer/src/components/Topbar.tsx`.
-  - В `src/renderer/src/App.tsx` настроена предзагрузка конфигурации при инициализации и фиксация русскоязычных событий в `ConsoleLogs.tsx` с отметкой времени при сохранении настроек.
-  - Обновлен `BACKLOG.md` (отмечена выполненной задача модального окна настроек) и IPC-таблица в `ARCHITECTURE.md`.
+- **17.09.2026 (Устранение нарушений границ проектов TypeScript и выделение `src/shared/types`)**:
+  - Создан выделенный модуль чистых типов `src/shared/types/index.ts` и корневой модуль `src/shared/index.ts` с нулевыми рантайм-зависимостями.
+  - Перенесены все общие DTO, модели и интерфейсы: `SystemInfo`, `PlaywrightRunResult`, `FileNode`, `ProjectStats`, `ProjectScanResult`, `PackageJsonSummary`, `DetectedStack`, `ConfigFileInfo`, `EntryPointInfo`, `ProjectContext`, `LogLevel`, `LogSource`, `LogEvent`, `TriggerTestLogParams`, `IPC_CHANNELS`, `CustomAPI`, `ElectronAPI`.
+  - Обновлены конфигурации TypeScript: в `tsconfig.node.json` и `tsconfig.web.json` добавлен путь `"src/shared/**/*"` в `include` и настроен алиас `"@shared/*": ["src/shared/*"]`.
+  - В `electron.vite.config.ts` зарегистрирован алиас `'@shared': resolve('src/shared')` для всех трех таргетов (`main`, `preload`, `renderer`).
+  - Проведен рефакторинг `src/preload/index.ts` и `src/preload/index.d.ts`: убрано дублирование определений типов, внедрен импорт из `@shared/types`.
+  - Проведен рефакторинг рендерера: в `src/renderer/src/services/electronService.ts`, `src/renderer/src/hooks/useLogStream.ts` и `src/renderer/src/types/index.ts` устранены прямые импорты из `src/preload/index.ts` (заменены на `@shared/types`).
+  - Проведен рефакторинг главного процесса: `src/main/services/loggerService.ts`, `src/main/services/projectParser.ts` и `src/main/ipc/handlers.ts` переведены на `@shared/types` и константы `IPC_CHANNELS`.
+  - В `ARCHITECTURE.md` добавлен раздел 1.4 с регламентом совместного использования типов через `src/shared/types` и строгим запретом на кросс-импорты реализации предзагрузки в UI.
+  - Проведена полная проверка качества: `pnpm typecheck`, `npx tsc -p tsconfig.web.json --noEmit`, `pnpm lint`, `pnpm format`, `pnpm build` завершились успешно с кодом 0.
+
+- **17.09.2026 (Потоковая передача логов и событий воркеров в реальном времени)**:
+  - Создан сервис `src/main/services/loggerService.ts`: широковещательная трансляция событий воркеров и системы через `webContents.send('stream:log-event', payload)` с генерацией уникальных `id`, меток времени `timestamp`, уровней `LogLevel` (`info`, `warn`, `error`, `success`) и источников `LogSource` (`system`, `playwright`, `crawler`, `ai`).
+  - Реализован IPC-обработчик `app:trigger-test-log` в `src/main/ipc/handlers.ts` и добавлено логирование событий запуска Playwright воркера и парсинга контекста Gemini.
+  - В Preload-мосте `src/preload/index.ts` и `src/preload/index.d.ts` реализован метод `onLogEvent(callback)`, возвращающий функцию очистки `() => ipcRenderer.removeListener(...)` для защиты от накопления слушателей и утечек памяти в React.
+  - Создан кастомный React-хук `src/renderer/src/hooks/useLogStream.ts` с подпиской на поток IPC, форматированием источников и автоматической очисткой при unmount.
+  - Обновлен `ConsoleLogs.tsx`: добавлены цветные бейджи источников, индикатор активности IPC-стриминга и кнопка "Тест IPC" для проверки в реальном времени.
+  - Интегрирован `useLogStream` в `App.tsx` и `electronService.ts`.
+  - Обновлен `BACKLOG.md` (отмечена задача потоковой передачи) и `ARCHITECTURE.md` (добавлены `stream:log-event` и `app:trigger-test-log`).
+  - Проведена полная валидация: `pnpm typecheck`, `pnpm lint`, `pnpm build` завершились успешно с кодом 0.
 
 - **17.09.2026 (Селективный парсер исходного кода для Gemini AI)**:
   - Создан сервис `src/main/services/projectParser.ts`: безопасное чтение `package.json`, конфигурационных файлов (`playwright.config.*`, `tsconfig*.json`, `vite.config.*`, `next.config.*`, `tailwind.config.*`, `eslint.config.*`) и точек входа (`src/main.tsx`, `src/App.tsx`, `src/index.ts`, `src/main/index.ts`) с лимитом размера 100 КБ и защитой от зависания памяти.

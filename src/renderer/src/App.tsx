@@ -5,16 +5,16 @@ import { Dashboard } from './components/Dashboard'
 import { ConsoleLogs } from './components/ConsoleLogs'
 import { SettingsModal } from './components/SettingsModal'
 import { useSystemStatus } from './hooks/useSystemStatus'
+import { useLogStream } from './hooks/useLogStream'
 import { electronService } from './services/electronService'
-import type { LogEntry, FileNode, ProjectStats, AppSettings } from './types'
+import type { FileNode, ProjectStats } from './types'
 
 export default function App(): React.JSX.Element {
   const { status, loading } = useSystemStatus()
   const [activeTab, setActiveTab] = useState('dashboard')
 
-  // Application Settings State
-  const [settings, setSettings] = useState<AppSettings | null>(null)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  // Real-Time Log Stream Hook
+  const { logs, addLog, clearLogs, triggerTestLog } = useLogStream()
 
   // Project Scanner State
   const [projectPath, setProjectPath] = useState<string | null>(null)
@@ -22,66 +22,6 @@ export default function App(): React.JSX.Element {
   const [fileTree, setFileTree] = useState<FileNode | null>(null)
   const [projectStats, setProjectStats] = useState<ProjectStats | null>(null)
   const [isScanning, setIsScanning] = useState(false)
-
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
-      id: 'log-1',
-      timestamp: new Date().toLocaleTimeString('ru-RU'),
-      level: 'info',
-      source: 'Система',
-      message: 'Приложение QA Pilot Desktop успешно инициализировано.'
-    },
-    {
-      id: 'log-2',
-      timestamp: new Date().toLocaleTimeString('ru-RU'),
-      level: 'success',
-      source: 'Preload IPC',
-      message: 'Мост контекстной изоляции установлен успешно.'
-    }
-  ])
-
-  const addLog = useCallback(
-    (message: string, level: LogEntry['level'] = 'info', source = 'Приложение') => {
-      const newEntry: LogEntry = {
-        id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        timestamp: new Date().toLocaleTimeString('ru-RU'),
-        level,
-        source,
-        message
-      }
-      setLogs((prev) => [...prev, newEntry])
-    },
-    []
-  )
-
-  const clearLogs = useCallback(() => {
-    setLogs([])
-  }, [])
-
-  // Pre-load settings on initial app load
-  useEffect(() => {
-    electronService
-      .getSettings()
-      .then((loaded) => {
-        setSettings(loaded)
-      })
-      .catch((err) => {
-        addLog(
-          `Ошибка загрузки конфигурации: ${err instanceof Error ? err.message : 'Сбой'}`,
-          'warn',
-          'Настройки'
-        )
-      })
-  }, [addLog])
-
-  const handleSaveSettings = useCallback(
-    async (newSettings: Partial<AppSettings>) => {
-      const saved = await electronService.saveSettings(newSettings)
-      setSettings(saved)
-      addLog('Настройки приложения успешно сохранены.', 'success', 'Настройки')
-    },
-    [addLog]
-  )
 
   const handleSelectProject = useCallback(async () => {
     setIsScanning(true)
@@ -178,7 +118,17 @@ export default function App(): React.JSX.Element {
             onTriggerLog={addLog}
           />
 
-          <ConsoleLogs logs={logs} onClearLogs={clearLogs} />
+          <ConsoleLogs
+            logs={logs}
+            onClearLogs={clearLogs}
+            onTriggerTestLog={() =>
+              triggerTestLog({
+                message: 'Тестовый импульс IPC-потока получен консолью в реальном времени',
+                level: 'info',
+                source: 'system'
+              })
+            }
+          />
         </main>
       </div>
 
