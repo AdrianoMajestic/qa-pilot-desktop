@@ -90,6 +90,7 @@
 | `app:get-system-info`   | Renderer -> Main | Получение версий среды (Node, Electron, OS, Chrome)      | `() => Promise<SystemInfo>`                                    |
 | `dialog:select-project` | Renderer -> Main | Нативный диалог выбора папки + рекурсивный сканер файлов | `() => Promise<ProjectScanResult>`                             |
 | `worker:playwright-run` | Renderer -> Main | Триггер запуска тестового сценария Playwright            | `(params: { suite?: string }) => Promise<PlaywrightRunResult>` |
+| `project:parse-context` | Renderer -> Main | Селективный парсер исходного кода и конфигов для AI      | `(projectPath: string) => Promise<ProjectContext>`             |
 
 ---
 
