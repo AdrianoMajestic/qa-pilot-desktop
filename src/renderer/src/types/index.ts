@@ -83,3 +83,11 @@ export interface ProjectState {
 }
 
 export * from './dashboard.types'
+
+export type {
+  ProjectContext,
+  PackageJsonSummary,
+  DetectedStack,
+  ConfigFileInfo,
+  EntryPointInfo
+} from '../../../preload/index'

@@ -1,6 +1,16 @@
 import { ipcMain, dialog } from 'electron'
 import { readdir, stat } from 'node:fs/promises'
 import { join, extname, basename, relative } from 'node:path'
+import {
+  parseProjectContext,
+  type ProjectContext,
+  type PackageJsonSummary,
+  type DetectedStack,
+  type ConfigFileInfo,
+  type EntryPointInfo
+} from '../services/projectParser'
+
+export type { ProjectContext, PackageJsonSummary, DetectedStack, ConfigFileInfo, EntryPointInfo }
 
 export interface FileNode {
   name: string
@@ -205,4 +215,12 @@ export function registerIpcHandlers(): void {
       timestamp: new Date().toISOString()
     }
   })
+
+  // Selective Source Code Parser Handler for Gemini AI Context
+  ipcMain.handle(
+    'project:parse-context',
+    async (_event, projectPath: string): Promise<ProjectContext> => {
+      return await parseProjectContext(projectPath)
+    }
+  )
 }

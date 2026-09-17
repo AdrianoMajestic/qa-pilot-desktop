@@ -42,11 +42,61 @@ export interface ProjectScanResult {
   error?: string
 }
 
+export interface PackageJsonSummary {
+  name?: string
+  version?: string
+  description?: string
+  scripts?: Record<string, string>
+  dependencies?: Record<string, string>
+  devDependencies?: Record<string, string>
+  rawContent?: string
+}
+
+export interface DetectedStack {
+  frameworks: string[]
+  testRunners: string[]
+  language: 'TypeScript' | 'JavaScript' | 'Mixed' | 'Unknown'
+  hasTypeScript: boolean
+  hasTailwind: boolean
+  buildTools: string[]
+}
+
+export interface ConfigFileInfo {
+  name: string
+  relativePath: string
+  content: string
+  size: number
+  truncated: boolean
+}
+
+export interface EntryPointInfo {
+  name: string
+  relativePath: string
+  content: string
+  size: number
+  truncated: boolean
+}
+
+export interface ProjectContext {
+  projectPath: string
+  projectName: string
+  timestamp: string
+  hasPackageJson: boolean
+  packageJson?: PackageJsonSummary
+  detectedStack: DetectedStack
+  configFiles: ConfigFileInfo[]
+  entryPoints: EntryPointInfo[]
+  summary: string
+  error?: string
+}
+
 // Custom typed APIs exposed to the renderer process
 export const api = {
   ping: (): Promise<string> => ipcRenderer.invoke('app:ping'),
   getSystemInfo: (): Promise<SystemInfo> => ipcRenderer.invoke('app:get-system-info'),
   selectProject: (): Promise<ProjectScanResult> => ipcRenderer.invoke('dialog:select-project'),
+  parseProjectContext: (projectPath: string): Promise<ProjectContext> =>
+    ipcRenderer.invoke('project:parse-context', projectPath),
   runPlaywrightWorker: (suite?: string): Promise<PlaywrightRunResult> =>
     ipcRenderer.invoke('worker:playwright-run', { suite })
 }
@@ -58,6 +108,7 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('electronAPI', api)
   } catch (error) {
     console.error('Preload contextBridge error:', error)
   }
@@ -66,4 +117,6 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   // @ts-ignore fallback
   window.api = api
+  // @ts-ignore fallback
+  window.electronAPI = api
 }

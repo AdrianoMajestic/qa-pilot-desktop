@@ -41,10 +41,59 @@ export interface ProjectScanResult {
   error?: string
 }
 
+export interface PackageJsonSummary {
+  name?: string
+  version?: string
+  description?: string
+  scripts?: Record<string, string>
+  dependencies?: Record<string, string>
+  devDependencies?: Record<string, string>
+  rawContent?: string
+}
+
+export interface DetectedStack {
+  frameworks: string[]
+  testRunners: string[]
+  language: 'TypeScript' | 'JavaScript' | 'Mixed' | 'Unknown'
+  hasTypeScript: boolean
+  hasTailwind: boolean
+  buildTools: string[]
+}
+
+export interface ConfigFileInfo {
+  name: string
+  relativePath: string
+  content: string
+  size: number
+  truncated: boolean
+}
+
+export interface EntryPointInfo {
+  name: string
+  relativePath: string
+  content: string
+  size: number
+  truncated: boolean
+}
+
+export interface ProjectContext {
+  projectPath: string
+  projectName: string
+  timestamp: string
+  hasPackageJson: boolean
+  packageJson?: PackageJsonSummary
+  detectedStack: DetectedStack
+  configFiles: ConfigFileInfo[]
+  entryPoints: EntryPointInfo[]
+  summary: string
+  error?: string
+}
+
 export interface CustomAPI {
   ping: () => Promise<string>
   getSystemInfo: () => Promise<SystemInfo>
   selectProject: () => Promise<ProjectScanResult>
+  parseProjectContext: (projectPath: string) => Promise<ProjectContext>
   runPlaywrightWorker: (suite?: string) => Promise<PlaywrightRunResult>
 }
 
@@ -52,5 +101,6 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api: CustomAPI
+    electronAPI?: CustomAPI
   }
 }
