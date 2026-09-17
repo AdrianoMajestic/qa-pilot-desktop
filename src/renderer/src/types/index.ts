@@ -81,3 +81,5 @@ export interface ProjectState {
   stats: ProjectStats | null
   isScanning: boolean
 }
+
+export * from './dashboard.types'

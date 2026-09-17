@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import type { SystemStatus, TestSuiteSummary, ProjectStats } from '../types'
 import { electronService } from '../services/electronService'
+import { DashboardOverview } from './DashboardOverview'
 
 interface DashboardProps {
   status: SystemStatus
@@ -236,6 +237,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <span className="text-emerald-400 font-medium">Фильтрация активна</span>
         </div>
       </div>
+
+      {/* Visual Quality Dashboard (Overall Score & Health Radar Widgets) */}
+      <DashboardOverview />
 
       {/* General Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
