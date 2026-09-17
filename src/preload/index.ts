@@ -8,16 +8,11 @@ import {
   type ProjectContext,
   type LogEvent,
   type TriggerTestLogParams,
+  type AppSettings,
   type CustomAPI
 } from '@shared/types'
 
 export * from '@shared/types'
-
-export interface AppSettings {
-  geminiApiKey: string
-  playwrightHeadless: boolean
-  testTimeoutMs: number
-}
 
 // Custom typed APIs exposed to the renderer process
 export const api: CustomAPI = {
@@ -38,7 +33,10 @@ export const api: CustomAPI = {
     }
   },
   triggerTestLog: (params?: TriggerTestLogParams): Promise<LogEvent> =>
-    ipcRenderer.invoke(IPC_CHANNELS.TRIGGER_TEST_LOG, params)
+    ipcRenderer.invoke(IPC_CHANNELS.TRIGGER_TEST_LOG, params),
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
+  saveSettings: (settings: Partial<AppSettings>): Promise<AppSettings> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SAVE, settings)
 }
 
 // Expose APIs via contextBridge when context isolation is enabled

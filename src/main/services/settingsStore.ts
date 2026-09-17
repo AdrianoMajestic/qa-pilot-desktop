@@ -2,11 +2,9 @@ import { app } from 'electron'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-export interface AppSettings {
-  geminiApiKey: string
-  playwrightHeadless: boolean
-  testTimeoutMs: number
-}
+import { type AppSettings } from '@shared/types'
+
+export type { AppSettings }
 
 const DEFAULT_SETTINGS: AppSettings = {
   geminiApiKey: process.env.MAIN_VITE_GEMINI_API_KEY || '',

@@ -5,7 +5,8 @@ import type {
   ProjectContext,
   LogEvent,
   LogLevel,
-  LogSource
+  LogSource,
+  AppSettings
 } from '@shared/types'
 
 class ElectronService {
@@ -107,6 +108,28 @@ class ElectronService {
       level: params?.level ?? 'info',
       source: params?.source ?? 'system',
       message: params?.message ?? 'Simulated test log in web-fallback'
+    }
+  }
+
+  async getSettings(): Promise<AppSettings> {
+    if (this.isElectronAvailable() && typeof window.api.getSettings === 'function') {
+      return await window.api.getSettings()
+    }
+    return {
+      geminiApiKey: '',
+      playwrightHeadless: false,
+      testTimeoutMs: 30000
+    }
+  }
+
+  async saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
+    if (this.isElectronAvailable() && typeof window.api.saveSettings === 'function') {
+      return await window.api.saveSettings(settings)
+    }
+    return {
+      geminiApiKey: settings.geminiApiKey ?? '',
+      playwrightHeadless: settings.playwrightHeadless ?? false,
+      testTimeoutMs: settings.testTimeoutMs ?? 30000
     }
   }
 }
