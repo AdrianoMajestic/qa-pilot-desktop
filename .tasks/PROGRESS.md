@@ -2,7 +2,7 @@
 
 ## Текущий статус проекта
 
-- **Фаза:** Реализован селективный парсер исходного кода для контекста Gemini AI, UI-виджеты дашборда, сканер проектов и IPC-мост.
+- **Фаза:** Реализовано модальное окно настроек и персистентное хранилище настроек (Gemini API Key, Playwright Headless, таймауты), селективный парсер кода, виджеты дашборда и IPC-мост.
 - **Дата обновления:** 17 сентября 2026 г.
 
 ## Регламент работы
@@ -29,24 +29,30 @@
 - [x] Обеспечить безопасный парсинг дерева файлов в JSON без циклических ссылок
 - [x] Реализовать сервис селективного парсера кода `src/main/services/projectParser.ts` с безопасным чтением файлов (лимит 100 КБ) и автоматической детекцией стека (React, Next.js, Vue, Playwright, Jest, Vitest, Cypress, TypeScript, Tailwind)
 - [x] Зарегистрировать обработчик IPC-канала `project:parse-context` (`src/main/ipc/handlers.ts`)
+- [x] Реализовать сервис персистентного хранения настроек `src/main/services/settingsStore.ts` (`app.getPath('userData')/settings.json`)
+- [x] Зарегистрировать обработчики IPC-каналов `settings:get` и `settings:save` (`src/main/ipc/handlers.ts`)
 
 ### 3. Preload Bridge и типизация (`src/preload/`, `src/renderer/src/types/`)
 
 - [x] Описать строгие TypeScript-интерфейсы `FileNode`, `ProjectStats`, `ProjectScanResult` (без `any`)
 - [x] Описать строгие TypeScript-интерфейсы `ProjectContext`, `PackageJsonSummary`, `DetectedStack`, `ConfigFileInfo`, `EntryPointInfo`
+- [x] Описать строгий TypeScript-интерфейс `AppSettings` (`geminiApiKey`, `playwrightHeadless`, `testTimeoutMs`)
 - [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить методы `window.api.getSettings()` и `window.api.saveSettings()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Экспортировать `window.electronAPI` для совместимости
 - [x] Интегрировать метод `parseProjectContext` в `src/renderer/src/services/electronService.ts` с безопасным fallback для web-среды
-- [x] Добавить типы состояния проекта и контекста в `src/renderer/src/types/index.ts`
+- [x] Интегрировать методы `getSettings` и `saveSettings` в `src/renderer/src/services/electronService.ts` с web-fallback
+- [x] Добавить типы состояния проекта, контекста и настроек в `src/renderer/src/types/index.ts`
 
 ### 4. Русская локализация и интеграция UI (`src/renderer/src/`)
 
-- [x] `Topbar.tsx`: полная русификация, кнопка "Выбрать проект" / "Открыть проект", отображение имени открытого проекта
+- [x] `Topbar.tsx`: полная русификация, кнопка "Выбрать проект" / "Открыть проект", кнопка "Настройки" с шестеренкой ⚙️, отображение имени открытого проекта
 - [x] `Sidebar.tsx`: полная русификация навигации, рекурсивная визуализация дерева файлов со сворачиванием/разворачиванием папок и иконками типов файлов
 - [x] `Dashboard.tsx`: полная русификация, блок статистики проекта (путь, файлы, JS/TS файлы, JSON, папки), кнопка выбора проекта
 - [x] `ConsoleLogs.tsx`: полная русификация элементов управления и статусов (ИНФО, ПРЕД, ОШИБ, УСПЕХ)
-- [x] `App.tsx`: централизованное управление состоянием проекта, форматированные логи процесса сканирования с временными метками
+- [x] `App.tsx`: централизованное управление состоянием проекта и настроек, предзагрузка настроек при старте, форматированные русскоязычные логи в консоль с временными метками при обновлении настроек
+- [x] `SettingsModal.tsx`: темное модальное окно настроек Tailwind CSS (поле Gemini API Key с переключателем видимости, свитч Headed/Headless режима Playwright, таймаут операций, сохранение и уведомление)
 
 ### 5. Виджеты визуального дашборда (Visual Dashboard Widgets)
 
@@ -65,6 +71,17 @@
 ---
 
 ## Журнал изменений (Changelog)
+
+- **17.09.2026 (Модальное окно настроек и персистентное хранилище)**:
+  - Создан сервис `src/main/services/settingsStore.ts`: локальное хранение конфигурации `AppSettings` (`geminiApiKey`, `playwrightHeadless`, `testTimeoutMs`) в `app.getPath('userData')/settings.json` без внешних библиотек, с безопасным чтением, валидацией и слиянием частичных настроек.
+  - Зарегистрированы IPC-обработчики `settings:get` и `settings:save` в `src/main/ipc/handlers.ts`.
+  - Обновлен мост предзагрузки `src/preload/index.ts` и `src/preload/index.d.ts`: типизированы методы `window.api.getSettings` и `window.api.saveSettings`, объявлен интерфейс `AppSettings`.
+  - Добавлены методы `getSettings` и `saveSettings` с web-fallback (`localStorage`) в `src/renderer/src/services/electronService.ts`.
+  - Экспортирован тип `AppSettings` в `src/renderer/src/types/index.ts`.
+  - Создан компонент `src/renderer/src/components/SettingsModal.tsx`: стилизация Tailwind CSS в темной палитре, поле ввода Google Gemini API Key с переключателем видимости пароля, свитч Headed/Headless режима Playwright ("Показывать браузер при автоматическом тестировании"), поле ввода таймаута в секундах, валидация диапазона, закрытие по Esc и toast-уведомление об успешном сохранении.
+  - Интегрирована кнопка "Настройки" с шестеренкой ⚙️ в `src/renderer/src/components/Topbar.tsx`.
+  - В `src/renderer/src/App.tsx` настроена предзагрузка конфигурации при инициализации и фиксация русскоязычных событий в `ConsoleLogs.tsx` с отметкой времени при сохранении настроек.
+  - Обновлен `BACKLOG.md` (отмечена выполненной задача модального окна настроек) и IPC-таблица в `ARCHITECTURE.md`.
 
 - **17.09.2026 (Селективный парсер исходного кода для Gemini AI)**:
   - Создан сервис `src/main/services/projectParser.ts`: безопасное чтение `package.json`, конфигурационных файлов (`playwright.config.*`, `tsconfig*.json`, `vite.config.*`, `next.config.*`, `tailwind.config.*`, `eslint.config.*`) и точек входа (`src/main.tsx`, `src/App.tsx`, `src/index.ts`, `src/main/index.ts`) с лимитом размера 100 КБ и защитой от зависания памяти.

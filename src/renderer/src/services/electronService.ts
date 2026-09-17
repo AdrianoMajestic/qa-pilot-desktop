@@ -2,7 +2,8 @@ import type {
   SystemInfo,
   PlaywrightRunResult,
   ProjectScanResult,
-  ProjectContext
+  ProjectContext,
+  AppSettings
 } from '../../../preload/index'
 
 class ElectronService {
@@ -73,6 +74,61 @@ class ElectronService {
       message: `Simulated worker response for suite: ${suite ?? 'default'}`,
       timestamp: new Date().toISOString()
     }
+  }
+
+  async getSettings(): Promise<AppSettings> {
+    if (this.isElectronAvailable() && typeof window.api.getSettings === 'function') {
+      return await window.api.getSettings()
+    }
+    try {
+      const stored = localStorage.getItem('qa_pilot_settings')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        return {
+          geminiApiKey: typeof parsed.geminiApiKey === 'string' ? parsed.geminiApiKey : '',
+          playwrightHeadless:
+            typeof parsed.playwrightHeadless === 'boolean' ? parsed.playwrightHeadless : false,
+          testTimeoutMs:
+            typeof parsed.testTimeoutMs === 'number' && parsed.testTimeoutMs > 0
+              ? parsed.testTimeoutMs
+              : 30000
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return {
+      geminiApiKey: '',
+      playwrightHeadless: false,
+      testTimeoutMs: 30000
+    }
+  }
+
+  async saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
+    if (this.isElectronAvailable() && typeof window.api.saveSettings === 'function') {
+      return await window.api.saveSettings(settings)
+    }
+    const current = await this.getSettings()
+    const updated: AppSettings = {
+      geminiApiKey:
+        typeof settings.geminiApiKey === 'string'
+          ? settings.geminiApiKey.trim()
+          : current.geminiApiKey,
+      playwrightHeadless:
+        typeof settings.playwrightHeadless === 'boolean'
+          ? settings.playwrightHeadless
+          : current.playwrightHeadless,
+      testTimeoutMs:
+        typeof settings.testTimeoutMs === 'number' && settings.testTimeoutMs > 0
+          ? Math.round(settings.testTimeoutMs)
+          : current.testTimeoutMs
+    }
+    try {
+      localStorage.setItem('qa_pilot_settings', JSON.stringify(updated))
+    } catch {
+      // ignore
+    }
+    return updated
   }
 }
 

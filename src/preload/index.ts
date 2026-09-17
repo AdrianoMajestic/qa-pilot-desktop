@@ -90,6 +90,12 @@ export interface ProjectContext {
   error?: string
 }
 
+export interface AppSettings {
+  geminiApiKey: string
+  playwrightHeadless: boolean
+  testTimeoutMs: number
+}
+
 // Custom typed APIs exposed to the renderer process
 export const api = {
   ping: (): Promise<string> => ipcRenderer.invoke('app:ping'),
@@ -98,7 +104,10 @@ export const api = {
   parseProjectContext: (projectPath: string): Promise<ProjectContext> =>
     ipcRenderer.invoke('project:parse-context', projectPath),
   runPlaywrightWorker: (suite?: string): Promise<PlaywrightRunResult> =>
-    ipcRenderer.invoke('worker:playwright-run', { suite })
+    ipcRenderer.invoke('worker:playwright-run', { suite }),
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke('settings:get'),
+  saveSettings: (settings: Partial<AppSettings>): Promise<AppSettings> =>
+    ipcRenderer.invoke('settings:save', settings)
 }
 
 export type CustomAPI = typeof api
