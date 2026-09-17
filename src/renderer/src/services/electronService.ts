@@ -6,7 +6,8 @@ import type {
   LogEvent,
   LogLevel,
   LogSource,
-  AppSettings
+  AppSettings,
+  GeminiConnectionTestResult
 } from '@shared/types'
 
 class ElectronService {
@@ -130,6 +131,19 @@ class ElectronService {
       geminiApiKey: settings.geminiApiKey ?? '',
       playwrightHeadless: settings.playwrightHeadless ?? false,
       testTimeoutMs: settings.testTimeoutMs ?? 30000
+    }
+  }
+
+  /**
+   * Tests connection to Google Gemini API using the provided or saved API key.
+   */
+  async testGeminiConnection(apiKey?: string): Promise<GeminiConnectionTestResult> {
+    if (this.isElectronAvailable() && typeof window.api.testGeminiConnection === 'function') {
+      return await window.api.testGeminiConnection(apiKey)
+    }
+    return {
+      success: false,
+      message: 'Electron API недоступен в web-режиме (web-fallback).'
     }
   }
 }

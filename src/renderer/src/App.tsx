@@ -163,6 +163,7 @@ export default function App(): React.JSX.Element {
         onClose={() => setIsSettingsOpen(false)}
         currentSettings={settings}
         onSave={handleSaveSettings}
+        onLog={addLog}
       />
     </div>
   )
