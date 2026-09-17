@@ -72,6 +72,9 @@
   - Проведена полная валидация: `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm build` завершились успешно с кодом 0.
 
 - **16.09.2026**:
+  - Устранены ошибки компиляции TypeScript в IDE:
+    - Исправлен импорт в `src/renderer/src/services/electronService.ts`: типы `SystemInfo`, `PlaywrightRunResult`, `ProjectScanResult` вынесены в `src/renderer/src/types/index.ts`, исключив нарушение границ проекта через импорт из `src/preload/index.ts`.
+    - Скорректирован `tsconfig.web.json`: добавлен `"outDir": "out/renderer"`, предотвращающий ошибку TS5055 (попытка перезаписи `src/preload/index.d.ts` при обработке composite-проекта).
   - Создан `ARCHITECTURE.md`: формализована трехуровневая модель изоляции процессов (`main`, `preload`, `renderer`), политики безопасности (`contextIsolation: true`, отключение `nodeIntegration`), конвенции именования файлов (`PascalCase`, `camelCase`, `*.types.ts`), запрет на сторонние UI-библиотеки без согласования и контракты IPC каналов.
   - Создан `BACKLOG.md`: структурированы 4 ключевые функциональные группы (`[FRONTEND]`, `[BACKEND & IPC]`, `[CORE ENGINE]`, `[AI INTEGRATION]`) с отслеживаемыми чек-боксами.
   - Проведена верификация сборки `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format` — все тесты и сборки завершены с кодом 0.
