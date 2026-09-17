@@ -15,12 +15,14 @@ import {
   type LogSource,
   type LogEvent,
   type AppSettings,
+  type GeminiConnectionTestResult
   type PlaywrightRunOptions,
   type PlaywrightRunStatus
 } from '@shared/types'
 import { parseProjectContext } from '../services/projectParser'
 import { loggerService } from '../services/loggerService'
 import { getSettings, saveSettings } from '../services/settingsService'
+import { testGeminiConnection } from '../services/geminiClient'
 import { playwrightRunner } from '../services/playwrightRunner'
 
 export type {
@@ -36,6 +38,7 @@ export type {
   LogSource,
   LogEvent,
   AppSettings,
+  GeminiConnectionTestResult
   PlaywrightRunOptions,
   PlaywrightRunStatus
 }
@@ -283,6 +286,14 @@ export function registerIpcHandlers(): void {
     IPC_CHANNELS.SETTINGS_SAVE,
     async (_event, newSettings: Partial<AppSettings>): Promise<AppSettings> => {
       return saveSettings(newSettings)
+    }
+  )
+
+  // Google Gemini API Connection Test Handler
+  ipcMain.handle(
+    IPC_CHANNELS.AI_TEST_CONNECTION,
+    async (_event, apiKey?: string): Promise<GeminiConnectionTestResult> => {
+      return testGeminiConnection(apiKey)
     }
   )
 }

@@ -164,6 +164,11 @@ export interface AppSettings {
   testTimeoutMs: number
 }
 
+export interface GeminiConnectionTestResult {
+  success: boolean
+  message: string
+}
+
 // ==========================================
 // 7. IPC Channels Protocol
 // ==========================================
@@ -180,7 +185,8 @@ export const IPC_CHANNELS = {
   STREAM_LOG_EVENT: 'stream:log-event',
   TRIGGER_TEST_LOG: 'app:trigger-test-log',
   SETTINGS_GET: 'settings:get',
-  SETTINGS_SAVE: 'settings:save'
+  SETTINGS_SAVE: 'settings:save',
+  AI_TEST_CONNECTION: 'ai:test-connection'
 } as const
 
 export type IpcChannelName = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -202,6 +208,7 @@ export interface CustomAPI {
   triggerTestLog: (params?: TriggerTestLogParams) => Promise<LogEvent>
   getSettings: () => Promise<AppSettings>
   saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>
+  testGeminiConnection: (apiKey?: string) => Promise<GeminiConnectionTestResult>
 }
 
 /**

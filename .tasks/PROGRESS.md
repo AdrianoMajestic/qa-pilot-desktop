@@ -2,6 +2,7 @@
 
 ## Текущий статус проекта
 
+- **Фаза:** Интеграция официального Google Gemini API SDK (@google/genai) в Electron Main Process, IPC мост ai:test-connection, валидация ключа в SettingsModal и стриминг логов.
 - **Фаза:** Реализован сервис запуска тестов Playwright Test Runner с выбором браузеров (Chromium/Firefox/WebKit) и headed-режимом по умолчанию, потоковая передача логов и событий воркеров в реальном времени, селективный парсер кода для Gemini AI, дашборд и сканер.
 - **Дата обновления:** 17 сентября 2026 г.
 
@@ -33,6 +34,9 @@
 - [x] Зарегистрировать обработчик диагностического IPC-канала `app:trigger-test-log` (`src/main/ipc/handlers.ts`)
 - [x] Реализовать сервис настроек `src/main/services/settingsService.ts` и `settingsStore.ts` для персистентного хранения конфигурации приложения в `settings.json` (`app.getPath('userData')`)
 - [x] Зарегистрировать IPC-обработчики `settings:get` и `settings:save` в `src/main/ipc/handlers.ts`
+- [x] Установить официальный Google Gen AI SDK (`@google/genai`) как production-зависимость в `package.json`
+- [x] Реализовать клиентский сервис `src/main/services/geminiClient.ts` с динамическим чтением API-ключа из `settingsStore` / `process.env`, методами `getApiKey()`, `testGeminiConnection()` и `generateText()`
+- [x] Зарегистрировать IPC-обработчик `ai:test-connection` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис запуска тестов Playwright `src/main/services/playwrightRunner.ts` с поддержкой Chromium/Firefox/WebKit, headed mode по умолчанию, отменой и стримингом в `loggerService`
 - [x] Зарегистрировать IPC-обработчики `playwright:run`, `playwright:stop`, `playwright:status` в `src/main/ipc/handlers.ts`
 
@@ -45,6 +49,11 @@
 - [x] Описать строгие TypeScript-интерфейсы `ProjectContext`, `PackageJsonSummary`, `DetectedStack`, `ConfigFileInfo`, `EntryPointInfo`
 - [x] Описать строгие TypeScript-интерфейсы `LogLevel`, `LogSource`, `LogEvent`
 - [x] Описать строгий интерфейс `AppSettings` в `src/shared/types` и константы каналов `SETTINGS_GET`, `SETTINGS_SAVE`
+- [x] Описать строгий интерфейс `GeminiConnectionTestResult` и константу канала `AI_TEST_CONNECTION`
+- [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить методы `window.api.getSettings()` и `window.api.saveSettings()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить метод `window.api.testGeminiConnection(apiKey?: string)` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Описать интерфейсы Playwright `PlaywrightRunOptions`, `PlaywrightRunStatus`, `PlaywrightBrowser` и каналы `PLAYWRIGHT_RUN`, `PLAYWRIGHT_STOP`, `PLAYWRIGHT_STATUS`
 - [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
@@ -61,10 +70,10 @@
 - [x] `Topbar.tsx`: полная русификация, кнопка "Выбрать проект" / "Открыть проект", кнопка "Настройки" с шестеренкой ⚙️, отображение имени открытого проекта
 - [x] `Sidebar.tsx`: полная русификация навигации, рекурсивная визуализация дерева файлов со сворачиванием/разворачиванием папок и иконками типов файлов
 - [x] `Dashboard.tsx`: полная русификация, блок статистики проекта (путь, файлы, JS/TS файлы, JSON, папки), кнопка выбора проекта
-- [x] `ConsoleLogs.tsx`: полная русификация элементов управления и статусов (ИНФО, ПРЕД, ОШИБ, УСПЕХ), бейджи источников (Playwright, Краулер, Gemini AI, Система), кнопка вызова тестового импульса IPC
-- [x] `SettingsModal.tsx`: полноценное модальное окно настроек (ввод и безопасный просмотр Gemini API Key, переключатель Headless/Headed режима браузера Playwright, настройка таймаута тестов в секундах, валидация и уведомления)
+- [x] `ConsoleLogs.tsx`: полная русификация элементов управления и статусов (ИНФО, ПРЕД, ОШИБ, УСПЕХ), бейджи источников (Playwright, Краулер, Gemini AI, Система), кнопка вызова тестового импульса IPC, форматирование меток времени `[16:20:00]`
+- [x] `SettingsModal.tsx`: полноценное модальное окно настроек (ввод и безопасный просмотр Gemini API Key, кнопка "Проверить ключ", динамический бейдж статуса "Проверка...", "✓ Ключ активен", "✗ Ошибка API ключа", переключатель Headless/Headed режима, таймаут тестов)
 - [x] `useLogStream.ts`: кастомный хук подписки на поток IPC-логов с автоматической отпиской при размонтировании
-- [x] `App.tsx`: централизованное управление состоянием проекта, синхронизация настроек с главным процессом через `electronService`, форматированные логи процесса сканирования с временными метками
+- [x] `App.tsx`: централизованное управление состоянием проекта, синхронизация настроек с главным процессом через `electronService`, проброс `onLog` в `SettingsModal`
 
 ### 5. Виджеты визуального дашборда (Visual Dashboard Widgets)
 
@@ -84,6 +93,18 @@
 
 ## Журнал изменений (Changelog)
 
+- **17.09.2026 (Интеграция официального Google Gemini SDK в главном процессе Electron)**:
+  - Установлен официальный SDK `@google/genai` (v2.23.0) в production dependencies `package.json` через `pnpm add @google/genai`.
+  - В `@shared/types` описан интерфейс `GeminiConnectionTestResult` и добавлен канал `IPC_CHANNELS.AI_TEST_CONNECTION = 'ai:test-connection'`.
+  - Создан сервис `src/main/services/geminiClient.ts` с динамической инициализацией клиента, получением активного ключа (`getApiKey`), тестовым запросом к модели `gemini-2.5-flash` (`testGeminiConnection`) с подробной русскоязычной локализацией ошибок (400 `API_KEY_INVALID`, 429 `RESOURCE_EXHAUSTED`, сетевые сбои, 404, 403), логированием в `loggerService` и универсальным методом `generateText(prompt, systemInstruction)`.
+  - Зарегистрирован IPC-обработчик `IPC_CHANNELS.AI_TEST_CONNECTION` в `src/main/ipc/handlers.ts`.
+  - В Preload-мосте `src/preload/index.ts` и `src/preload/index.d.ts` экспортирован метод `testGeminiConnection(apiKey?: string)` в объекте `CustomAPI`.
+  - В `src/renderer/src/services/electronService.ts` добавлен метод `testGeminiConnection(apiKey?: string)` с безопасным web-fallback.
+  - В `SettingsModal.tsx` добавлена кнопка "Проверить ключ" и динамический бейдж статуса ("Проверка...", "✓ Ключ активен", "✗ Ошибка API ключа") с отображением подробного ответа сервера.
+  - В `ConsoleLogs.tsx` метка времени обернута в квадратные скобки `[{log.timestamp}]` для соответствия формату `[16:20:00] Успешное подключение к Google Gemini API`.
+  - В `App.tsx` передан `onLog={addLog}` в `SettingsModal` для гарантированного логирования.
+  - Обновлен контракт IPC-каналов в `ARCHITECTURE.md` и отмечена задача в `BACKLOG.md`.
+  - Проведена проверка качества: `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm build` успешно завершены с кодом 0.
 - **17.09.2026 (Интеграция сервиса Playwright Test Runner в главном процессе)**:
   - Формализованы интерфейсы `PlaywrightRunOptions`, `PlaywrightRunStatus`, `PlaywrightBrowser` (`chromium`, `firefox`, `webkit`) и константы каналов `PLAYWRIGHT_RUN`, `PLAYWRIGHT_STOP`, `PLAYWRIGHT_STATUS` в `@shared/types`.
   - Создан сервис `src/main/services/playwrightRunner.ts`: запуск Playwright тестов через внешний процесс `npx playwright test`, выбор браузера `--project=<browser>`, headed-режим по умолчанию `--headed` с учетом пользовательских настроек, стриминг `stdout`/`stderr` в реальном времени в `loggerService` с фильтрацией ANSI и цветной маркировкой уровней (`success`, `error`, `warn`, `info`).
