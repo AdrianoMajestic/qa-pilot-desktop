@@ -8,6 +8,20 @@ export interface SystemStatus {
   chromeVersion?: string
 }
 
+export interface SystemInfo {
+  platform: string
+  arch: string
+  nodeVersion: string
+  electronVersion: string
+  chromeVersion: string
+}
+
+export interface PlaywrightRunResult {
+  success: boolean
+  message: string
+  timestamp: string
+}
+
 export interface LogEntry {
   id: string
   timestamp: string
