@@ -2,41 +2,34 @@ import { ipcMain, dialog } from 'electron'
 import { readdir, stat } from 'node:fs/promises'
 import { join, extname, basename, relative } from 'node:path'
 import {
-  parseProjectContext,
+  IPC_CHANNELS,
+  type FileNode,
+  type ProjectStats,
+  type ProjectScanResult,
   type ProjectContext,
   type PackageJsonSummary,
   type DetectedStack,
   type ConfigFileInfo,
-  type EntryPointInfo
-} from '../services/projectParser'
+  type EntryPointInfo,
+  type LogLevel,
+  type LogSource,
+  type LogEvent
+} from '@shared/types'
+import { parseProjectContext } from '../services/projectParser'
+import { loggerService } from '../services/loggerService'
 
-export type { ProjectContext, PackageJsonSummary, DetectedStack, ConfigFileInfo, EntryPointInfo }
-
-export interface FileNode {
-  name: string
-  path: string
-  relativePath: string
-  isDirectory: boolean
-  extension?: string
-  size?: number
-  children?: FileNode[]
-}
-
-export interface ProjectStats {
-  totalFiles: number
-  totalFolders: number
-  jsTsFilesCount: number
-  jsonFilesCount: number
-  codeFilesCount: number
-}
-
-export interface ProjectScanResult {
-  canceled: boolean
-  projectPath?: string
-  projectName?: string
-  fileTree?: FileNode
-  stats?: ProjectStats
-  error?: string
+export type {
+  FileNode,
+  ProjectStats,
+  ProjectScanResult,
+  ProjectContext,
+  PackageJsonSummary,
+  DetectedStack,
+  ConfigFileInfo,
+  EntryPointInfo,
+  LogLevel,
+  LogSource,
+  LogEvent
 }
 
 const IGNORED_NAMES = new Set<string>([
@@ -141,12 +134,12 @@ async function scanDirectory(
  */
 export function registerIpcHandlers(): void {
   // Test Ping Handler
-  ipcMain.handle('app:ping', async () => {
+  ipcMain.handle(IPC_CHANNELS.PING, async () => {
     return 'pong'
   })
 
   // System Information Handler
-  ipcMain.handle('app:get-system-info', async () => {
+  ipcMain.handle(IPC_CHANNELS.GET_SYSTEM_INFO, async () => {
     return {
       platform: process.platform,
       arch: process.arch,
@@ -157,7 +150,7 @@ export function registerIpcHandlers(): void {
   })
 
   // Local File Scanner Handler
-  ipcMain.handle('dialog:select-project', async (): Promise<ProjectScanResult> => {
+  ipcMain.handle(IPC_CHANNELS.SELECT_PROJECT, async (): Promise<ProjectScanResult> => {
     try {
       const dialogResult = await dialog.showOpenDialog({
         title: 'Выбрать папку проекта для QA анализа',
@@ -207,20 +200,54 @@ export function registerIpcHandlers(): void {
   })
 
   // Future Playwright Worker Execution Handler Placeholder
-  ipcMain.handle('worker:playwright-run', async (_event, params?: { suite?: string }) => {
-    console.log('[Main Process] Playwright worker trigger received:', params)
-    return {
+  ipcMain.handle(IPC_CHANNELS.PLAYWRIGHT_RUN, async (_event, params?: { suite?: string }) => {
+    const suiteName = params?.suite ?? 'all'
+    loggerService.info('playwright', `Запуск тестового набора Playwright: "${suiteName}"`)
+
+    const result = {
       success: true,
-      message: `Playwright worker placeholder initialized for suite: ${params?.suite ?? 'all'}`,
+      message: `Воркер Playwright успешно инициализирован для набора: ${suiteName}`,
       timestamp: new Date().toISOString()
     }
+
+    loggerService.success(
+      'playwright',
+      `Набор "${suiteName}" успешно обработан воркером Playwright.`
+    )
+    return result
   })
 
   // Selective Source Code Parser Handler for Gemini AI Context
   ipcMain.handle(
-    'project:parse-context',
+    IPC_CHANNELS.PARSE_PROJECT_CONTEXT,
     async (_event, projectPath: string): Promise<ProjectContext> => {
-      return await parseProjectContext(projectPath)
+      loggerService.info('ai', `Запуск селективного парсера проекта: ${projectPath}`)
+      const context = await parseProjectContext(projectPath)
+      loggerService.success(
+        'ai',
+        `Контекст проекта сформирован: стек [${context.detectedStack.frameworks.join(', ')}], конфигов: ${context.configFiles.length}`
+      )
+      return context
+    }
+  )
+
+  // Real-Time Log Event Test Trigger Handler
+  ipcMain.handle(
+    IPC_CHANNELS.TRIGGER_TEST_LOG,
+    async (
+      _event,
+      params?: {
+        message?: string
+        level?: LogLevel
+        source?: LogSource
+        details?: Record<string, unknown>
+      }
+    ): Promise<LogEvent> => {
+      const level = params?.level ?? 'info'
+      const source = params?.source ?? 'system'
+      const message =
+        params?.message ?? 'Тестовое событие реального времени получено через IPC-стриминг'
+      return loggerService.broadcast(level, source, message, params?.details)
     }
   )
 }

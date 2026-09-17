@@ -1,53 +1,15 @@
 import { readFile, stat } from 'node:fs/promises'
 import { join, basename, relative } from 'node:path'
 
-export interface PackageJsonSummary {
-  name?: string
-  version?: string
-  description?: string
-  scripts?: Record<string, string>
-  dependencies?: Record<string, string>
-  devDependencies?: Record<string, string>
-  rawContent?: string
-}
+import {
+  type PackageJsonSummary,
+  type DetectedStack,
+  type ConfigFileInfo,
+  type EntryPointInfo,
+  type ProjectContext
+} from '@shared/types'
 
-export interface DetectedStack {
-  frameworks: string[]
-  testRunners: string[]
-  language: 'TypeScript' | 'JavaScript' | 'Mixed' | 'Unknown'
-  hasTypeScript: boolean
-  hasTailwind: boolean
-  buildTools: string[]
-}
-
-export interface ConfigFileInfo {
-  name: string
-  relativePath: string
-  content: string
-  size: number
-  truncated: boolean
-}
-
-export interface EntryPointInfo {
-  name: string
-  relativePath: string
-  content: string
-  size: number
-  truncated: boolean
-}
-
-export interface ProjectContext {
-  projectPath: string
-  projectName: string
-  timestamp: string
-  hasPackageJson: boolean
-  packageJson?: PackageJsonSummary
-  detectedStack: DetectedStack
-  configFiles: ConfigFileInfo[]
-  entryPoints: EntryPointInfo[]
-  summary: string
-  error?: string
-}
+export type { PackageJsonSummary, DetectedStack, ConfigFileInfo, EntryPointInfo, ProjectContext }
 
 const MAX_FILE_SIZE = 100 * 1024 // 100 KB limit for AI context
 

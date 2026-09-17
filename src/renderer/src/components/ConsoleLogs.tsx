@@ -4,9 +4,14 @@ import type { LogEntry } from '../types'
 interface ConsoleLogsProps {
   logs: LogEntry[]
   onClearLogs: () => void
+  onTriggerTestLog?: () => void
 }
 
-export const ConsoleLogs: React.FC<ConsoleLogsProps> = ({ logs, onClearLogs }) => {
+export const ConsoleLogs: React.FC<ConsoleLogsProps> = ({
+  logs,
+  onClearLogs,
+  onTriggerTestLog
+}) => {
   const [collapsed, setCollapsed] = useState(false)
   const logContainerRef = useRef<HTMLDivElement>(null)
 
@@ -46,6 +51,27 @@ export const ConsoleLogs: React.FC<ConsoleLogsProps> = ({ logs, onClearLogs }) =
     }
   }
 
+  const getSourceBadge = (source?: string): React.JSX.Element | null => {
+    if (!source) return null
+    const s = source.toLowerCase()
+    let colorClasses = 'text-slate-400 bg-slate-800/60 border-slate-700/60'
+    if (s.includes('playwright')) {
+      colorClasses = 'text-emerald-400 bg-emerald-950/50 border-emerald-800/40'
+    } else if (s.includes('краулер') || s.includes('crawler')) {
+      colorClasses = 'text-amber-400 bg-amber-950/50 border-amber-800/40'
+    } else if (s.includes('gemini') || s.includes('ai')) {
+      colorClasses = 'text-indigo-400 bg-indigo-950/50 border-indigo-800/40'
+    } else if (s.includes('система') || s.includes('system') || s.includes('preload')) {
+      colorClasses = 'text-blue-400 bg-blue-950/50 border-blue-800/40'
+    }
+
+    return (
+      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${colorClasses}`}>
+        {source}
+      </span>
+    )
+  }
+
   return (
     <div
       className={`border-t border-slate-800 bg-slate-900 transition-all duration-200 flex flex-col select-none ${
@@ -72,8 +98,12 @@ export const ConsoleLogs: React.FC<ConsoleLogsProps> = ({ logs, onClearLogs }) =
                 d="M19 9l-7 7-7-7"
               />
             </svg>
-            <span className="uppercase tracking-wider text-[11px] font-mono">
-              Логи выполнения и поток IPC
+            <span className="uppercase tracking-wider text-[11px] font-mono flex items-center gap-1.5">
+              <span>Логи выполнения и поток IPC</span>
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
+                title="IPC стриминг активен"
+              />
             </span>
           </button>
           <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-[10px] text-slate-400 font-mono">
@@ -82,15 +112,27 @@ export const ConsoleLogs: React.FC<ConsoleLogsProps> = ({ logs, onClearLogs }) =
         </div>
 
         <div className="flex items-center gap-2">
+          {onTriggerTestLog && !collapsed && (
+            <button
+              onClick={onTriggerTestLog}
+              className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-750 text-indigo-300 hover:text-indigo-200 border border-slate-700 text-[10px] font-mono transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+              title="Отправить тестовое событие в Main процесс для проверки IPC-стриминга"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+              <span>Тест IPC</span>
+            </button>
+          )}
+
           {!collapsed && (
             <button
               onClick={onClearLogs}
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors text-[11px] cursor-pointer"
+              className="p-1 px-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors text-[11px] cursor-pointer"
               title="Очистить консоль"
             >
               Очистить
             </button>
           )}
+
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
@@ -120,11 +162,11 @@ export const ConsoleLogs: React.FC<ConsoleLogsProps> = ({ logs, onClearLogs }) =
             logs.map((log) => (
               <div
                 key={log.id}
-                className="flex items-start gap-2.5 leading-relaxed hover:bg-slate-900/50 px-1 py-0.5 rounded"
+                className="flex items-start gap-2.5 leading-relaxed hover:bg-slate-900/50 px-1 py-0.5 rounded transition-colors"
               >
                 <span className="text-slate-500 text-[11px] select-none">{log.timestamp}</span>
                 {getLevelBadge(log.level)}
-                {log.source && <span className="text-slate-500 text-[11px]">[{log.source}]</span>}
+                {getSourceBadge(log.source)}
                 <span className="flex-1 text-slate-200">{log.message}</span>
               </div>
             ))

@@ -2,8 +2,11 @@ import type {
   SystemInfo,
   PlaywrightRunResult,
   ProjectScanResult,
-  ProjectContext
-} from '../../../preload/index'
+  ProjectContext,
+  LogEvent,
+  LogLevel,
+  LogSource
+} from '@shared/types'
 
 class ElectronService {
   private isElectronAvailable(): boolean {
@@ -72,6 +75,38 @@ class ElectronService {
       success: true,
       message: `Simulated worker response for suite: ${suite ?? 'default'}`,
       timestamp: new Date().toISOString()
+    }
+  }
+
+  /**
+   * Subscribes to real-time Main process log streaming events via Preload bridge.
+   * Returns a cleanup function that detaches the IPC listener.
+   */
+  onLogEvent(callback: (event: LogEvent) => void): () => void {
+    if (this.isElectronAvailable() && typeof window.api.onLogEvent === 'function') {
+      return window.api.onLogEvent(callback)
+    }
+    return () => {}
+  }
+
+  /**
+   * Triggers a diagnostic log event through IPC to verify real-time stream execution.
+   */
+  async triggerTestLog(params?: {
+    message?: string
+    level?: LogLevel
+    source?: LogSource
+    details?: Record<string, unknown>
+  }): Promise<LogEvent> {
+    if (this.isElectronAvailable() && typeof window.api.triggerTestLog === 'function') {
+      return await window.api.triggerTestLog(params)
+    }
+    return {
+      id: `mock-log-${Date.now()}`,
+      timestamp: Date.now(),
+      level: params?.level ?? 'info',
+      source: params?.source ?? 'system',
+      message: params?.message ?? 'Simulated test log in web-fallback'
     }
   }
 }

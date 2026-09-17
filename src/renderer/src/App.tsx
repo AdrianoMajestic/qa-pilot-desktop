@@ -4,12 +4,16 @@ import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './components/Dashboard'
 import { ConsoleLogs } from './components/ConsoleLogs'
 import { useSystemStatus } from './hooks/useSystemStatus'
+import { useLogStream } from './hooks/useLogStream'
 import { electronService } from './services/electronService'
-import type { LogEntry, FileNode, ProjectStats } from './types'
+import type { FileNode, ProjectStats } from './types'
 
 export default function App(): React.JSX.Element {
   const { status, loading } = useSystemStatus()
   const [activeTab, setActiveTab] = useState('dashboard')
+
+  // Real-Time Log Stream Hook
+  const { logs, addLog, clearLogs, triggerTestLog } = useLogStream()
 
   // Project Scanner State
   const [projectPath, setProjectPath] = useState<string | null>(null)
@@ -17,41 +21,6 @@ export default function App(): React.JSX.Element {
   const [fileTree, setFileTree] = useState<FileNode | null>(null)
   const [projectStats, setProjectStats] = useState<ProjectStats | null>(null)
   const [isScanning, setIsScanning] = useState(false)
-
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
-      id: 'log-1',
-      timestamp: new Date().toLocaleTimeString('ru-RU'),
-      level: 'info',
-      source: 'Система',
-      message: 'Приложение QA Pilot Desktop успешно инициализировано.'
-    },
-    {
-      id: 'log-2',
-      timestamp: new Date().toLocaleTimeString('ru-RU'),
-      level: 'success',
-      source: 'Preload IPC',
-      message: 'Мост контекстной изоляции установлен успешно.'
-    }
-  ])
-
-  const addLog = useCallback(
-    (message: string, level: LogEntry['level'] = 'info', source = 'Приложение') => {
-      const newEntry: LogEntry = {
-        id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        timestamp: new Date().toLocaleTimeString('ru-RU'),
-        level,
-        source,
-        message
-      }
-      setLogs((prev) => [...prev, newEntry])
-    },
-    []
-  )
-
-  const clearLogs = useCallback(() => {
-    setLogs([])
-  }, [])
 
   const handleSelectProject = useCallback(async () => {
     setIsScanning(true)
@@ -147,7 +116,17 @@ export default function App(): React.JSX.Element {
             onTriggerLog={addLog}
           />
 
-          <ConsoleLogs logs={logs} onClearLogs={clearLogs} />
+          <ConsoleLogs
+            logs={logs}
+            onClearLogs={clearLogs}
+            onTriggerTestLog={() =>
+              triggerTestLog({
+                message: 'Тестовый импульс IPC-потока получен консолью в реальном времени',
+                level: 'info',
+                source: 'system'
+              })
+            }
+          />
         </main>
       </div>
     </div>
