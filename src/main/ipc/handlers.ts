@@ -16,11 +16,14 @@ import {
   type LogEvent,
   type AppSettings,
   type GeminiConnectionTestResult
+  type PlaywrightRunOptions,
+  type PlaywrightRunStatus
 } from '@shared/types'
 import { parseProjectContext } from '../services/projectParser'
 import { loggerService } from '../services/loggerService'
 import { getSettings, saveSettings } from '../services/settingsService'
 import { testGeminiConnection } from '../services/geminiClient'
+import { playwrightRunner } from '../services/playwrightRunner'
 
 export type {
   FileNode,
@@ -36,6 +39,8 @@ export type {
   LogEvent,
   AppSettings,
   GeminiConnectionTestResult
+  PlaywrightRunOptions,
+  PlaywrightRunStatus
 }
 
 const IGNORED_NAMES = new Set<string>([
@@ -205,23 +210,38 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  // Future Playwright Worker Execution Handler Placeholder
-  ipcMain.handle(IPC_CHANNELS.PLAYWRIGHT_RUN, async (_event, params?: { suite?: string }) => {
-    const suiteName = params?.suite ?? 'all'
-    loggerService.info('playwright', `Запуск тестового набора Playwright: "${suiteName}"`)
-
-    const result = {
-      success: true,
-      message: `Воркер Playwright успешно инициализирован для набора: ${suiteName}`,
-      timestamp: new Date().toISOString()
+  // Playwright Test Runner Handlers
+  ipcMain.handle(
+    IPC_CHANNELS.PLAYWRIGHT_RUN,
+    async (
+      _event,
+      options?: PlaywrightRunOptions
+    ): Promise<{ success: boolean; message?: string }> => {
+      return await playwrightRunner.runTests(options)
     }
+  )
 
-    loggerService.success(
-      'playwright',
-      `Набор "${suiteName}" успешно обработан воркером Playwright.`
-    )
-    return result
+  ipcMain.handle(IPC_CHANNELS.PLAYWRIGHT_STOP, async (): Promise<void> => {
+    await playwrightRunner.stopTests()
   })
+
+  ipcMain.handle(IPC_CHANNELS.PLAYWRIGHT_STATUS, async (): Promise<PlaywrightRunStatus> => {
+    return playwrightRunner.getStatus()
+  })
+
+  // Legacy Playwright Worker compatibility handler
+  ipcMain.handle(
+    IPC_CHANNELS.LEGACY_PLAYWRIGHT_WORKER,
+    async (_event, params?: { suite?: string }) => {
+      const result = await playwrightRunner.runTests({ testMatch: params?.suite })
+      return {
+        success: result.success,
+        message:
+          result.message ?? `Воркер Playwright завершил выполнение: ${params?.suite ?? 'default'}`,
+        timestamp: new Date().toISOString()
+      }
+    }
+  )
 
   // Selective Source Code Parser Handler for Gemini AI Context
   ipcMain.handle(

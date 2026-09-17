@@ -4,6 +4,8 @@ import {
   IPC_CHANNELS,
   type SystemInfo,
   type PlaywrightRunResult,
+  type PlaywrightRunOptions,
+  type PlaywrightRunStatus,
   type ProjectScanResult,
   type ProjectContext,
   type LogEvent,
@@ -23,7 +25,14 @@ export const api: CustomAPI = {
   parseProjectContext: (projectPath: string): Promise<ProjectContext> =>
     ipcRenderer.invoke(IPC_CHANNELS.PARSE_PROJECT_CONTEXT, projectPath),
   runPlaywrightWorker: (suite?: string): Promise<PlaywrightRunResult> =>
-    ipcRenderer.invoke(IPC_CHANNELS.PLAYWRIGHT_RUN, { suite }),
+    ipcRenderer.invoke(IPC_CHANNELS.LEGACY_PLAYWRIGHT_WORKER, { suite }),
+  runPlaywright: (
+    options?: PlaywrightRunOptions
+  ): Promise<{ success: boolean; message?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.PLAYWRIGHT_RUN, options),
+  stopPlaywright: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.PLAYWRIGHT_STOP),
+  getPlaywrightStatus: (): Promise<PlaywrightRunStatus> =>
+    ipcRenderer.invoke(IPC_CHANNELS.PLAYWRIGHT_STATUS),
   onLogEvent: (callback: (event: LogEvent) => void): (() => void) => {
     const subscription = (_event: Electron.IpcRendererEvent, logEvent: LogEvent): void => {
       callback(logEvent)

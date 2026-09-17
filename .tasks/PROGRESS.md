@@ -3,6 +3,7 @@
 ## Текущий статус проекта
 
 - **Фаза:** Интеграция официального Google Gemini API SDK (@google/genai) в Electron Main Process, IPC мост ai:test-connection, валидация ключа в SettingsModal и стриминг логов.
+- **Фаза:** Реализован сервис запуска тестов Playwright Test Runner с выбором браузеров (Chromium/Firefox/WebKit) и headed-режимом по умолчанию, потоковая передача логов и событий воркеров в реальном времени, селективный парсер кода для Gemini AI, дашборд и сканер.
 - **Дата обновления:** 17 сентября 2026 г.
 
 ## Регламент работы
@@ -36,6 +37,8 @@
 - [x] Установить официальный Google Gen AI SDK (`@google/genai`) как production-зависимость в `package.json`
 - [x] Реализовать клиентский сервис `src/main/services/geminiClient.ts` с динамическим чтением API-ключа из `settingsStore` / `process.env`, методами `getApiKey()`, `testGeminiConnection()` и `generateText()`
 - [x] Зарегистрировать IPC-обработчик `ai:test-connection` в `src/main/ipc/handlers.ts`
+- [x] Реализовать сервис запуска тестов Playwright `src/main/services/playwrightRunner.ts` с поддержкой Chromium/Firefox/WebKit, headed mode по умолчанию, отменой и стримингом в `loggerService`
+- [x] Зарегистрировать IPC-обработчики `playwright:run`, `playwright:stop`, `playwright:status` в `src/main/ipc/handlers.ts`
 
 ### 3. Preload Bridge и типизация (`src/preload/`, `src/renderer/src/types/`, `src/shared/types/`)
 
@@ -51,6 +54,11 @@
 - [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить методы `window.api.getSettings()` и `window.api.saveSettings()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод `window.api.testGeminiConnection(apiKey?: string)` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Описать интерфейсы Playwright `PlaywrightRunOptions`, `PlaywrightRunStatus`, `PlaywrightBrowser` и каналы `PLAYWRIGHT_RUN`, `PLAYWRIGHT_STOP`, `PLAYWRIGHT_STATUS`
+- [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить методы `window.api.getSettings()` и `window.api.saveSettings()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить методы `window.api.runPlaywright()`, `stopPlaywright()`, `getPlaywrightStatus()` в `src/preload/index.ts` и `CustomAPI`
 - [x] Добавить метод потоковой подписки `window.api.onLogEvent(callback)` с обязательной функцией отписки `removeListener` для защиты от утечек памяти
 - [x] Добавить метод вызова `window.api.triggerTestLog()`
 - [x] Экспортировать `window.electronAPI` для совместимости
@@ -97,6 +105,14 @@
   - В `App.tsx` передан `onLog={addLog}` в `SettingsModal` для гарантированного логирования.
   - Обновлен контракт IPC-каналов в `ARCHITECTURE.md` и отмечена задача в `BACKLOG.md`.
   - Проведена проверка качества: `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm build` успешно завершены с кодом 0.
+- **17.09.2026 (Интеграция сервиса Playwright Test Runner в главном процессе)**:
+  - Формализованы интерфейсы `PlaywrightRunOptions`, `PlaywrightRunStatus`, `PlaywrightBrowser` (`chromium`, `firefox`, `webkit`) и константы каналов `PLAYWRIGHT_RUN`, `PLAYWRIGHT_STOP`, `PLAYWRIGHT_STATUS` в `@shared/types`.
+  - Создан сервис `src/main/services/playwrightRunner.ts`: запуск Playwright тестов через внешний процесс `npx playwright test`, выбор браузера `--project=<browser>`, headed-режим по умолчанию `--headed` с учетом пользовательских настроек, стриминг `stdout`/`stderr` в реальном времени в `loggerService` с фильтрацией ANSI и цветной маркировкой уровней (`success`, `error`, `warn`, `info`).
+  - Реализован механизм остановки тестов `stopTests()` с форсированным удалением дерева процессов через `taskkill /pid ... /T /F` на Windows и `SIGTERM`/`SIGKILL` на POSIX, а также синхронная очистка `stopTestsSync()` по хуку `app.on('before-quit')`.
+  - Зарегистрированы IPC-обработчики `IPC_CHANNELS.PLAYWRIGHT_RUN`, `IPC_CHANNELS.PLAYWRIGHT_STOP` и `IPC_CHANNELS.PLAYWRIGHT_STATUS` в `src/main/ipc/handlers.ts` (с сохранением обратной совместимости для `worker:playwright-run`).
+  - В Preload-мосте `src/preload/index.ts` и типе `CustomAPI` открыты методы `runPlaywright`, `stopPlaywright`, `getPlaywrightStatus`.
+  - В `src/renderer/src/services/electronService.ts` добавлены методы управления Playwright с безопасным web-fallback.
+  - Обновлены `BACKLOG.md` (отмечена задача Playwright Test Runner) и `ARCHITECTURE.md` (таблица IPC-каналов).
 
 - **17.09.2026 (Сервис постоянных настроек и интеграция модального окна SettingsModal)**:
   - Формализован интерфейс `AppSettings` (`geminiApiKey`, `playwrightHeadless`, `testTimeoutMs`) в `@shared/types` и добавлены константы каналов `SETTINGS_GET`, `SETTINGS_SAVE`.

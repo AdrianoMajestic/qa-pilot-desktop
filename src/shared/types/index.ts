@@ -20,6 +20,24 @@ export interface SystemInfo {
 // 2. Playwright & Worker Execution
 // ==========================================
 
+export type PlaywrightBrowser = 'chromium' | 'firefox' | 'webkit'
+
+export interface PlaywrightRunOptions {
+  browser?: PlaywrightBrowser
+  headed?: boolean // default: true
+  testMatch?: string
+  targetUrl?: string
+  projectPath?: string
+}
+
+export interface PlaywrightRunStatus {
+  isRunning: boolean
+  browser: PlaywrightBrowser
+  headed: boolean
+  startTime?: number
+  pid?: number
+}
+
 export interface PlaywrightRunResult {
   success: boolean
   message: string
@@ -160,7 +178,10 @@ export const IPC_CHANNELS = {
   GET_SYSTEM_INFO: 'app:get-system-info',
   SELECT_PROJECT: 'dialog:select-project',
   PARSE_PROJECT_CONTEXT: 'project:parse-context',
-  PLAYWRIGHT_RUN: 'worker:playwright-run',
+  PLAYWRIGHT_RUN: 'playwright:run',
+  PLAYWRIGHT_STOP: 'playwright:stop',
+  PLAYWRIGHT_STATUS: 'playwright:status',
+  LEGACY_PLAYWRIGHT_WORKER: 'worker:playwright-run',
   STREAM_LOG_EVENT: 'stream:log-event',
   TRIGGER_TEST_LOG: 'app:trigger-test-log',
   SETTINGS_GET: 'settings:get',
@@ -180,6 +201,9 @@ export interface CustomAPI {
   selectProject: () => Promise<ProjectScanResult>
   parseProjectContext: (projectPath: string) => Promise<ProjectContext>
   runPlaywrightWorker: (suite?: string) => Promise<PlaywrightRunResult>
+  runPlaywright: (options?: PlaywrightRunOptions) => Promise<{ success: boolean; message?: string }>
+  stopPlaywright: () => Promise<void>
+  getPlaywrightStatus: () => Promise<PlaywrightRunStatus>
   onLogEvent: (callback: (event: LogEvent) => void) => () => void
   triggerTestLog: (params?: TriggerTestLogParams) => Promise<LogEvent>
   getSettings: () => Promise<AppSettings>

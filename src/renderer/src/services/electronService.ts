@@ -8,6 +8,8 @@ import type {
   LogSource,
   AppSettings,
   GeminiConnectionTestResult
+  PlaywrightRunOptions,
+  PlaywrightRunStatus
 } from '@shared/types'
 
 class ElectronService {
@@ -77,6 +79,44 @@ class ElectronService {
       success: true,
       message: `Simulated worker response for suite: ${suite ?? 'default'}`,
       timestamp: new Date().toISOString()
+    }
+  }
+
+  /**
+   * Triggers execution of Playwright test runner in Main process.
+   */
+  async runPlaywright(
+    options?: PlaywrightRunOptions
+  ): Promise<{ success: boolean; message?: string }> {
+    if (this.isElectronAvailable() && typeof window.api.runPlaywright === 'function') {
+      return await window.api.runPlaywright(options)
+    }
+    return {
+      success: true,
+      message: `[Web Fallback] Тесты Playwright симулированы (Браузер: ${options?.browser ?? 'chromium'}, Режим: ${(options?.headed ?? true) ? 'Headed' : 'Headless'}).`
+    }
+  }
+
+  /**
+   * Requests cancellation of active Playwright test runner.
+   */
+  async stopPlaywright(): Promise<void> {
+    if (this.isElectronAvailable() && typeof window.api.stopPlaywright === 'function') {
+      await window.api.stopPlaywright()
+    }
+  }
+
+  /**
+   * Retrieves current status of Playwright test runner.
+   */
+  async getPlaywrightStatus(): Promise<PlaywrightRunStatus> {
+    if (this.isElectronAvailable() && typeof window.api.getPlaywrightStatus === 'function') {
+      return await window.api.getPlaywrightStatus()
+    }
+    return {
+      isRunning: false,
+      browser: 'chromium',
+      headed: true
     }
   }
 
