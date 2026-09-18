@@ -165,7 +165,58 @@ export interface AppSettings {
 }
 
 // ==========================================
-// 7. IPC Channels Protocol
+// 7. Web Application Crawler
+// ==========================================
+
+export interface CrawlerOptions {
+  startUrl: string
+  maxDepth?: number // default: 3
+  maxPages?: number // default: 30
+  sameDomainOnly?: boolean // default: true
+  emulateFormSubmission?: boolean // default: false (safe mode)
+}
+
+export interface DiscoveredInput {
+  tag: string // input, textarea, select, button
+  type: string // text, email, password, submit, etc.
+  name: string
+  id: string
+  placeholder: string
+}
+
+export interface DiscoveredForm {
+  action: string
+  method: string
+  id: string
+  fields: DiscoveredInput[]
+}
+
+export interface DiscoveredPage {
+  url: string
+  depth: number
+  title: string
+  forms: DiscoveredForm[]
+  inputs: DiscoveredInput[]
+  links: string[]
+  errors: string[]
+  timestamp: number
+}
+
+export interface CrawlResult {
+  success: boolean
+  startUrl: string
+  pagesVisited: number
+  pagesDiscovered: number
+  totalForms: number
+  totalInputs: number
+  pages: DiscoveredPage[]
+  errors: string[]
+  durationMs: number
+  aborted: boolean
+}
+
+// ==========================================
+// 8. IPC Channels Protocol
 // ==========================================
 
 export const IPC_CHANNELS = {
@@ -180,13 +231,15 @@ export const IPC_CHANNELS = {
   STREAM_LOG_EVENT: 'stream:log-event',
   TRIGGER_TEST_LOG: 'app:trigger-test-log',
   SETTINGS_GET: 'settings:get',
-  SETTINGS_SAVE: 'settings:save'
+  SETTINGS_SAVE: 'settings:save',
+  CRAWLER_START: 'crawler:start',
+  CRAWLER_STOP: 'crawler:stop'
 } as const
 
 export type IpcChannelName = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
 
 // ==========================================
-// 8. Typed Electron Bridge API
+// 9. Typed Electron Bridge API
 // ==========================================
 
 export interface CustomAPI {
@@ -202,6 +255,8 @@ export interface CustomAPI {
   triggerTestLog: (params?: TriggerTestLogParams) => Promise<LogEvent>
   getSettings: () => Promise<AppSettings>
   saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>
+  startCrawler: (options: CrawlerOptions) => Promise<CrawlResult>
+  stopCrawler: () => Promise<void>
 }
 
 /**

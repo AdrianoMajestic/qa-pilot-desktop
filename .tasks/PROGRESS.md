@@ -2,8 +2,8 @@
 
 ## Текущий статус проекта
 
-- **Фаза:** Реализован сервис запуска тестов Playwright Test Runner с выбором браузеров (Chromium/Firefox/WebKit) и headed-режимом по умолчанию, потоковая передача логов и событий воркеров в реальном времени, селективный парсер кода для Gemini AI, дашборд и сканер.
-- **Дата обновления:** 17 сентября 2026 г.
+- **Фаза:** Реализован сервис запуска тестов Playwright Test Runner с выбором браузеров (Chromium/Firefox/WebKit) и headed-режимом по умолчанию, модуль автоматизированного обхода веб-приложения (BFS краулер) с эмуляцией пользовательских действий, потоковая передача логов и событий воркеров в реальном времени, селективный парсер кода для Gemini AI, дашборд и сканер.
+- **Дата обновления:** 18 сентября 2026 г.
 
 ## Регламент работы
 
@@ -35,6 +35,8 @@
 - [x] Зарегистрировать IPC-обработчики `settings:get` и `settings:save` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис запуска тестов Playwright `src/main/services/playwrightRunner.ts` с поддержкой Chromium/Firefox/WebKit, headed mode по умолчанию, отменой и стримингом в `loggerService`
 - [x] Зарегистрировать IPC-обработчики `playwright:run`, `playwright:stop`, `playwright:status` в `src/main/ipc/handlers.ts`
+- [x] Реализовать сервис автоматического обхода веб-приложения `src/main/services/crawlerService.ts` с BFS-обходом страниц, обнаружением форм/полей ввода, эмуляцией взаимодействий, контролем домена и глубины
+- [x] Зарегистрировать IPC-обработчики `crawler:start`, `crawler:stop` в `src/main/ipc/handlers.ts`
 
 ### 3. Preload Bridge и типизация (`src/preload/`, `src/renderer/src/types/`, `src/shared/types/`)
 
@@ -53,6 +55,8 @@
 - [x] Добавить метод потоковой подписки `window.api.onLogEvent(callback)` с обязательной функцией отписки `removeListener` для защиты от утечек памяти
 - [x] Добавить метод вызова `window.api.triggerTestLog()`
 - [x] Экспортировать `window.electronAPI` для совместимости
+- [x] Добавить методы `window.api.startCrawler()` и `window.api.stopCrawler()` в `src/preload/index.ts` и `CustomAPI`
+- [x] Интегрировать методы краулера в `src/renderer/src/services/electronService.ts` с безопасным fallback для web-среды
 - [x] Интегрировать методы в `src/renderer/src/services/electronService.ts` с безопасным fallback для web-среды
 - [x] Реэкспортировать общие типы в `src/renderer/src/types/index.ts` из `@shared/types`
 
@@ -83,6 +87,19 @@
 ---
 
 ## Журнал изменений (Changelog)
+
+- **18.09.2026 (Модуль автоматизированного обхода веб-приложения — CrawlerService)**:
+  - Установлена зависимость `playwright` (`pnpm add playwright`) для использования Playwright library API в главном процессе.
+  - Формализованы интерфейсы `CrawlerOptions`, `DiscoveredInput`, `DiscoveredForm`, `DiscoveredPage`, `CrawlResult` и константы каналов `CRAWLER_START`, `CRAWLER_STOP` в `@shared/types`.
+  - Создан сервис `src/main/services/crawlerService.ts`: BFS-обход веб-приложения через Playwright Chromium, извлечение ссылок `<a href>` с фильтрацией по домену, обнаружение форм (`<form>`) и интерактивных элементов (`<input>`, `<textarea>`, `<select>`, `<button>`), опциональная эмуляция заполнения полей тестовыми данными (`qa-test-input`), захват JS console errors и page errors.
+  - Реализован механизм контроля обхода: `maxDepth` (по умолчанию 3), `maxPages` (по умолчанию 30), `sameDomainOnly` (по умолчанию true), `emulateFormSubmission` (по умолчанию false — безопасный режим).
+  - Реализован механизм остановки `stopCrawl()` с graceful-закрытием браузера Playwright и синхронной очисткой по хуку `app.on('before-quit')`.
+  - Весь прогресс обхода транслируется в реальном времени через `loggerService` с `source: 'crawler'`.
+  - Зарегистрированы IPC-обработчики `IPC_CHANNELS.CRAWLER_START` и `IPC_CHANNELS.CRAWLER_STOP` в `src/main/ipc/handlers.ts`.
+  - В Preload-мосте `src/preload/index.ts` и типе `CustomAPI` открыты методы `startCrawler`, `stopCrawler`.
+  - В `src/renderer/src/services/electronService.ts` добавлены методы управления краулером с безопасным web-fallback.
+  - Обновлены `BACKLOG.md` (отмечена задача автокраулера) и `ARCHITECTURE.md` (таблица IPC-каналов: `crawler:start`, `crawler:stop`).
+  - Проведена полная проверка качества: `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm build` завершились успешно с кодом 0.
 
 - **17.09.2026 (Интеграция сервиса Playwright Test Runner в главном процессе)**:
   - Формализованы интерфейсы `PlaywrightRunOptions`, `PlaywrightRunStatus`, `PlaywrightBrowser` (`chromium`, `firefox`, `webkit`) и константы каналов `PLAYWRIGHT_RUN`, `PLAYWRIGHT_STOP`, `PLAYWRIGHT_STATUS` в `@shared/types`.

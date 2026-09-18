@@ -103,6 +103,8 @@
 | `playwright:stop`       | Renderer -> Main | Остановка и завершение процессов тестов Playwright         | `() => Promise<void>`                                                                 |
 | `playwright:status`     | Renderer -> Main | Получение текущего статуса активности Playwright runner    | `() => Promise<PlaywrightRunStatus>`                                                  |
 | `worker:playwright-run` | Renderer -> Main | Легаси-триггер запуска тестового сценария Playwright       | `(params: { suite?: string }) => Promise<PlaywrightRunResult>`                        |
+| `crawler:start`         | Renderer -> Main | Запуск автоматического обхода веб-приложения (BFS краулер) | `(options: CrawlerOptions) => Promise<CrawlResult>`                                   |
+| `crawler:stop`          | Renderer -> Main | Остановка активного обхода веб-приложения                  | `() => Promise<void>`                                                                 |
 | `project:parse-context` | Renderer -> Main | Селективный парсер исходного кода и конфигов для AI        | `(projectPath: string) => Promise<ProjectContext>`                                    |
 | `stream:log-event`      | Main -> Renderer | Потоковая передача логов и событий воркеров                | `(payload: LogEvent) => void`                                                         |
 | `app:trigger-test-log`  | Renderer -> Main | Диагностический триггер события логов реального времени    | `(params?: TestLogParams) => Promise<LogEvent>`                                       |

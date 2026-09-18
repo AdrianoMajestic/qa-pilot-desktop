@@ -11,6 +11,8 @@ import {
   type LogEvent,
   type TriggerTestLogParams,
   type AppSettings,
+  type CrawlerOptions,
+  type CrawlResult,
   type CustomAPI
 } from '@shared/types'
 
@@ -45,7 +47,10 @@ export const api: CustomAPI = {
     ipcRenderer.invoke(IPC_CHANNELS.TRIGGER_TEST_LOG, params),
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
   saveSettings: (settings: Partial<AppSettings>): Promise<AppSettings> =>
-    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SAVE, settings)
+    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SAVE, settings),
+  startCrawler: (options: CrawlerOptions): Promise<CrawlResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_START, options),
+  stopCrawler: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_STOP)
 }
 
 // Expose APIs via contextBridge when context isolation is enabled

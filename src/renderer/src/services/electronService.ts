@@ -8,7 +8,9 @@ import type {
   LogSource,
   AppSettings,
   PlaywrightRunOptions,
-  PlaywrightRunStatus
+  PlaywrightRunStatus,
+  CrawlerOptions,
+  CrawlResult
 } from '@shared/types'
 
 class ElectronService {
@@ -170,6 +172,36 @@ class ElectronService {
       geminiApiKey: settings.geminiApiKey ?? '',
       playwrightHeadless: settings.playwrightHeadless ?? false,
       testTimeoutMs: settings.testTimeoutMs ?? 30000
+    }
+  }
+
+  /**
+   * Starts automated web application crawl in Main process.
+   */
+  async startCrawler(options: CrawlerOptions): Promise<CrawlResult> {
+    if (this.isElectronAvailable() && typeof window.api.startCrawler === 'function') {
+      return await window.api.startCrawler(options)
+    }
+    return {
+      success: false,
+      startUrl: options.startUrl,
+      pagesVisited: 0,
+      pagesDiscovered: 0,
+      totalForms: 0,
+      totalInputs: 0,
+      pages: [],
+      errors: ['Electron API недоступен в web-режиме'],
+      durationMs: 0,
+      aborted: false
+    }
+  }
+
+  /**
+   * Requests cancellation of active crawler.
+   */
+  async stopCrawler(): Promise<void> {
+    if (this.isElectronAvailable() && typeof window.api.stopCrawler === 'function') {
+      await window.api.stopCrawler()
     }
   }
 }
