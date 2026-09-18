@@ -164,6 +164,11 @@ export interface AppSettings {
   testTimeoutMs: number
 }
 
+export interface GeminiConnectionTestResult {
+  success: boolean
+  message: string
+}
+
 // ==========================================
 // 7. Web Application Crawler
 // ==========================================
@@ -234,6 +239,7 @@ export const IPC_CHANNELS = {
   SETTINGS_SAVE: 'settings:save',
   CRAWLER_START: 'crawler:start',
   CRAWLER_STOP: 'crawler:stop'
+  AI_TEST_CONNECTION: 'ai:test-connection'
 } as const
 
 export type IpcChannelName = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -257,6 +263,7 @@ export interface CustomAPI {
   saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>
   startCrawler: (options: CrawlerOptions) => Promise<CrawlResult>
   stopCrawler: () => Promise<void>
+  testGeminiConnection: (apiKey?: string) => Promise<GeminiConnectionTestResult>
 }
 
 /**

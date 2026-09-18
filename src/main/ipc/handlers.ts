@@ -15,6 +15,7 @@ import {
   type LogSource,
   type LogEvent,
   type AppSettings,
+  type GeminiConnectionTestResult
   type PlaywrightRunOptions,
   type PlaywrightRunStatus,
   type CrawlerOptions,
@@ -23,6 +24,7 @@ import {
 import { parseProjectContext } from '../services/projectParser'
 import { loggerService } from '../services/loggerService'
 import { getSettings, saveSettings } from '../services/settingsService'
+import { testGeminiConnection } from '../services/geminiClient'
 import { playwrightRunner } from '../services/playwrightRunner'
 import { crawlerService } from '../services/crawlerService'
 
@@ -39,6 +41,7 @@ export type {
   LogSource,
   LogEvent,
   AppSettings,
+  GeminiConnectionTestResult
   PlaywrightRunOptions,
   PlaywrightRunStatus,
   CrawlerOptions,
@@ -302,4 +305,11 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.CRAWLER_STOP, async (): Promise<void> => {
     await crawlerService.stopCrawl()
   })
+  // Google Gemini API Connection Test Handler
+  ipcMain.handle(
+    IPC_CHANNELS.AI_TEST_CONNECTION,
+    async (_event, apiKey?: string): Promise<GeminiConnectionTestResult> => {
+      return testGeminiConnection(apiKey)
+    }
+  )
 }

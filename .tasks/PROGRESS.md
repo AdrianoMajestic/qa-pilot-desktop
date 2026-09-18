@@ -33,6 +33,9 @@
 - [x] Зарегистрировать обработчик диагностического IPC-канала `app:trigger-test-log` (`src/main/ipc/handlers.ts`)
 - [x] Реализовать сервис настроек `src/main/services/settingsService.ts` и `settingsStore.ts` для персистентного хранения конфигурации приложения в `settings.json` (`app.getPath('userData')`)
 - [x] Зарегистрировать IPC-обработчики `settings:get` и `settings:save` в `src/main/ipc/handlers.ts`
+- [x] Установить официальный Google Gen AI SDK (`@google/genai`) как production-зависимость в `package.json`
+- [x] Реализовать клиентский сервис `src/main/services/geminiClient.ts` с динамическим чтением API-ключа из `settingsStore` / `process.env`, методами `getApiKey()`, `testGeminiConnection()` и `generateText()`
+- [x] Зарегистрировать IPC-обработчик `ai:test-connection` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис запуска тестов Playwright `src/main/services/playwrightRunner.ts` с поддержкой Chromium/Firefox/WebKit, headed mode по умолчанию, отменой и стримингом в `loggerService`
 - [x] Зарегистрировать IPC-обработчики `playwright:run`, `playwright:stop`, `playwright:status` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис автоматического обхода веб-приложения `src/main/services/crawlerService.ts` с BFS-обходом страниц, обнаружением форм/полей ввода, эмуляцией взаимодействий, контролем домена и глубины
@@ -47,6 +50,11 @@
 - [x] Описать строгие TypeScript-интерфейсы `ProjectContext`, `PackageJsonSummary`, `DetectedStack`, `ConfigFileInfo`, `EntryPointInfo`
 - [x] Описать строгие TypeScript-интерфейсы `LogLevel`, `LogSource`, `LogEvent`
 - [x] Описать строгий интерфейс `AppSettings` в `src/shared/types` и константы каналов `SETTINGS_GET`, `SETTINGS_SAVE`
+- [x] Описать строгий интерфейс `GeminiConnectionTestResult` и константу канала `AI_TEST_CONNECTION`
+- [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить методы `window.api.getSettings()` и `window.api.saveSettings()` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Добавить метод `window.api.testGeminiConnection(apiKey?: string)` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Описать интерфейсы Playwright `PlaywrightRunOptions`, `PlaywrightRunStatus`, `PlaywrightBrowser` и каналы `PLAYWRIGHT_RUN`, `PLAYWRIGHT_STOP`, `PLAYWRIGHT_STATUS`
 - [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
@@ -65,10 +73,10 @@
 - [x] `Topbar.tsx`: полная русификация, кнопка "Выбрать проект" / "Открыть проект", кнопка "Настройки" с шестеренкой ⚙️, отображение имени открытого проекта
 - [x] `Sidebar.tsx`: полная русификация навигации, рекурсивная визуализация дерева файлов со сворачиванием/разворачиванием папок и иконками типов файлов
 - [x] `Dashboard.tsx`: полная русификация, блок статистики проекта (путь, файлы, JS/TS файлы, JSON, папки), кнопка выбора проекта
-- [x] `ConsoleLogs.tsx`: полная русификация элементов управления и статусов (ИНФО, ПРЕД, ОШИБ, УСПЕХ), бейджи источников (Playwright, Краулер, Gemini AI, Система), кнопка вызова тестового импульса IPC
-- [x] `SettingsModal.tsx`: полноценное модальное окно настроек (ввод и безопасный просмотр Gemini API Key, переключатель Headless/Headed режима браузера Playwright, настройка таймаута тестов в секундах, валидация и уведомления)
+- [x] `ConsoleLogs.tsx`: полная русификация элементов управления и статусов (ИНФО, ПРЕД, ОШИБ, УСПЕХ), бейджи источников (Playwright, Краулер, Gemini AI, Система), кнопка вызова тестового импульса IPC, форматирование меток времени `[16:20:00]`
+- [x] `SettingsModal.tsx`: полноценное модальное окно настроек (ввод и безопасный просмотр Gemini API Key, кнопка "Проверить ключ", динамический бейдж статуса "Проверка...", "✓ Ключ активен", "✗ Ошибка API ключа", переключатель Headless/Headed режима, таймаут тестов)
 - [x] `useLogStream.ts`: кастомный хук подписки на поток IPC-логов с автоматической отпиской при размонтировании
-- [x] `App.tsx`: централизованное управление состоянием проекта, синхронизация настроек с главным процессом через `electronService`, форматированные логи процесса сканирования с временными метками
+- [x] `App.tsx`: централизованное управление состоянием проекта, синхронизация настроек с главным процессом через `electronService`, проброс `onLog` в `SettingsModal`
 
 ### 5. Виджеты визуального дашборда (Visual Dashboard Widgets)
 

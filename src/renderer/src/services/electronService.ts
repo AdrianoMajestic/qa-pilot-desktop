@@ -7,6 +7,7 @@ import type {
   LogLevel,
   LogSource,
   AppSettings,
+  GeminiConnectionTestResult
   PlaywrightRunOptions,
   PlaywrightRunStatus,
   CrawlerOptions,
@@ -202,6 +203,15 @@ class ElectronService {
   async stopCrawler(): Promise<void> {
     if (this.isElectronAvailable() && typeof window.api.stopCrawler === 'function') {
       await window.api.stopCrawler()
+   * Tests connection to Google Gemini API using the provided or saved API key.
+   */
+  async testGeminiConnection(apiKey?: string): Promise<GeminiConnectionTestResult> {
+    if (this.isElectronAvailable() && typeof window.api.testGeminiConnection === 'function') {
+      return await window.api.testGeminiConnection(apiKey)
+    }
+    return {
+      success: false,
+      message: 'Electron API недоступен в web-режиме (web-fallback).'
     }
   }
 }

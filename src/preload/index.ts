@@ -13,6 +13,7 @@ import {
   type AppSettings,
   type CrawlerOptions,
   type CrawlResult,
+  type GeminiConnectionTestResult,
   type CustomAPI
 } from '@shared/types'
 
@@ -51,6 +52,8 @@ export const api: CustomAPI = {
   startCrawler: (options: CrawlerOptions): Promise<CrawlResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_START, options),
   stopCrawler: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_STOP)
+  testGeminiConnection: (apiKey?: string): Promise<GeminiConnectionTestResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, apiKey)
 }
 
 // Expose APIs via contextBridge when context isolation is enabled
