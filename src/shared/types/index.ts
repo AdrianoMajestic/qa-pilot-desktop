@@ -238,7 +238,7 @@ export const IPC_CHANNELS = {
   SETTINGS_GET: 'settings:get',
   SETTINGS_SAVE: 'settings:save',
   CRAWLER_START: 'crawler:start',
-  CRAWLER_STOP: 'crawler:stop'
+  CRAWLER_STOP: 'crawler:stop',
   AI_TEST_CONNECTION: 'ai:test-connection'
 } as const
 
