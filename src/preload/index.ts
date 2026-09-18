@@ -11,6 +11,8 @@ import {
   type LogEvent,
   type TriggerTestLogParams,
   type AppSettings,
+  type CrawlerOptions,
+  type CrawlResult,
   type GeminiConnectionTestResult,
   type CustomAPI
 } from '@shared/types'
@@ -47,6 +49,9 @@ export const api: CustomAPI = {
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
   saveSettings: (settings: Partial<AppSettings>): Promise<AppSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SAVE, settings),
+  startCrawler: (options: CrawlerOptions): Promise<CrawlResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_START, options),
+  stopCrawler: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_STOP)
   testGeminiConnection: (apiKey?: string): Promise<GeminiConnectionTestResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, apiKey)
 }

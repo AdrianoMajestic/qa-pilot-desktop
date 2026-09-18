@@ -17,13 +17,16 @@ import {
   type AppSettings,
   type GeminiConnectionTestResult
   type PlaywrightRunOptions,
-  type PlaywrightRunStatus
+  type PlaywrightRunStatus,
+  type CrawlerOptions,
+  type CrawlResult
 } from '@shared/types'
 import { parseProjectContext } from '../services/projectParser'
 import { loggerService } from '../services/loggerService'
 import { getSettings, saveSettings } from '../services/settingsService'
 import { testGeminiConnection } from '../services/geminiClient'
 import { playwrightRunner } from '../services/playwrightRunner'
+import { crawlerService } from '../services/crawlerService'
 
 export type {
   FileNode,
@@ -40,7 +43,9 @@ export type {
   AppSettings,
   GeminiConnectionTestResult
   PlaywrightRunOptions,
-  PlaywrightRunStatus
+  PlaywrightRunStatus,
+  CrawlerOptions,
+  CrawlResult
 }
 
 const IGNORED_NAMES = new Set<string>([
@@ -289,6 +294,17 @@ export function registerIpcHandlers(): void {
     }
   )
 
+  // Web Application Crawler Handlers
+  ipcMain.handle(
+    IPC_CHANNELS.CRAWLER_START,
+    async (_event, options: CrawlerOptions): Promise<CrawlResult> => {
+      return await crawlerService.startCrawl(options)
+    }
+  )
+
+  ipcMain.handle(IPC_CHANNELS.CRAWLER_STOP, async (): Promise<void> => {
+    await crawlerService.stopCrawl()
+  })
   // Google Gemini API Connection Test Handler
   ipcMain.handle(
     IPC_CHANNELS.AI_TEST_CONNECTION,
