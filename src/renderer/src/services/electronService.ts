@@ -11,7 +11,9 @@ import type {
   PlaywrightRunOptions,
   PlaywrightRunStatus,
   CrawlerOptions,
-  CrawlResult
+  CrawlResult,
+  BrowserError,
+  BrowserErrorType
 } from '@shared/types'
 
 class ElectronService {
@@ -216,6 +218,108 @@ class ElectronService {
     return {
       success: false,
       message: 'Electron API недоступен в web-режиме (web-fallback).'
+    }
+  }
+
+  private mockBrowserErrors: BrowserError[] = [
+    {
+      id: 'mock-err-1',
+      timestamp: Date.now() - 42000,
+      source: 'playwright',
+      type: 'http_error',
+      statusCode: 502,
+      statusText: 'Bad Gateway',
+      url: 'https://api.staging-qa.local/v1/auth/token',
+      message: '[HTTP 502] Bad Gateway: https://api.staging-qa.local/v1/auth/token',
+      details: {
+        method: 'POST',
+        resourceType: 'fetch',
+        status: 502,
+        statusText: 'Bad Gateway'
+      }
+    },
+    {
+      id: 'mock-err-2',
+      timestamp: Date.now() - 25000,
+      source: 'crawler',
+      type: 'network_failure',
+      url: 'https://cdn.staging-qa.local/assets/bundle.chunk.js',
+      failureText: 'net::ERR_CONNECTION_REFUSED',
+      message:
+        'Сетевой сбой запроса (net::ERR_CONNECTION_REFUSED): https://cdn.staging-qa.local/assets/bundle.chunk.js',
+      details: {
+        method: 'GET',
+        resourceType: 'script',
+        failureText: 'net::ERR_CONNECTION_REFUSED'
+      }
+    },
+    {
+      id: 'mock-err-3',
+      timestamp: Date.now() - 12000,
+      source: 'playwright',
+      type: 'console_error',
+      url: 'https://staging-qa.local/dashboard',
+      message:
+        'Консольная ошибка браузера: Uncaught TypeError: Cannot read properties of undefined (reading "permissions")',
+      location: {
+        url: 'https://staging-qa.local/static/js/app.js',
+        lineNumber: 142,
+        columnNumber: 28
+      },
+      details: {
+        text: 'Uncaught TypeError: Cannot read properties of undefined (reading "permissions")',
+        pageUrl: 'https://staging-qa.local/dashboard'
+      }
+    },
+    {
+      id: 'mock-err-4',
+      timestamp: Date.now() - 5000,
+      source: 'crawler',
+      type: 'page_error',
+      url: 'https://staging-qa.local/checkout',
+      message:
+        'Неперехваченное исключение страницы (Page Error): ChunkLoadError: Loading chunk 42 failed',
+      stackTrace:
+        'ChunkLoadError: Loading chunk 42 failed.\n    at __webpack_require__.f.j (webpack:///src/lazy/checkout.tsx:28:12)\n    at ensureChunk (webpack:///src/router.tsx:84:9)\n    at HTMLButtonElement.dispatch (https://staging-qa.local/assets/vendor.js:4012:15)',
+      details: {
+        name: 'ChunkLoadError',
+        pageUrl: 'https://staging-qa.local/checkout'
+      }
+    }
+  ]
+
+  /**
+   * Retrieves captured browser errors from the in-memory session store.
+   */
+  async getBrowserErrors(filter?: {
+    source?: 'playwright' | 'crawler'
+    type?: BrowserErrorType
+  }): Promise<BrowserError[]> {
+    if (this.isElectronAvailable() && typeof window.api.getBrowserErrors === 'function') {
+      return await window.api.getBrowserErrors(filter)
+    }
+    let res = this.mockBrowserErrors
+    if (filter?.source) {
+      res = res.filter((e) => e.source === filter.source)
+    }
+    if (filter?.type) {
+      res = res.filter((e) => e.type === filter.type)
+    }
+    return [...res]
+  }
+
+  /**
+   * Clears captured browser errors from the session buffer.
+   */
+  async clearBrowserErrors(source?: 'playwright' | 'crawler'): Promise<void> {
+    if (this.isElectronAvailable() && typeof window.api.clearBrowserErrors === 'function') {
+      await window.api.clearBrowserErrors(source)
+      return
+    }
+    if (source) {
+      this.mockBrowserErrors = this.mockBrowserErrors.filter((e) => e.source !== source)
+    } else {
+      this.mockBrowserErrors = []
     }
   }
 }

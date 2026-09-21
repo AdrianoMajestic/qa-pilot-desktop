@@ -2,8 +2,8 @@
 
 ## Текущий статус проекта
 
-- **Фаза:** Реализован сервис запуска тестов Playwright Test Runner с выбором браузеров (Chromium/Firefox/WebKit) и headed-режимом по умолчанию, модуль автоматизированного обхода веб-приложения (BFS краулер) с эмуляцией пользовательских действий, потоковая передача логов и событий воркеров в реальном времени, селективный парсер кода для Gemini AI, дашборд и сканер.
-- **Дата обновления:** 18 сентября 2026 г.
+- **Фаза:** Реализован полный стек `[CORE ENGINE]`: Playwright Test Runner, BFS-краулер, **Browser Error Interceptor (HTTP 500+, сетевые сбои, console errors, uncaught JS exceptions)** с IPC-мостом и React UI-виджетом. Все задачи домена `[CORE ENGINE]` завершены.
+- **Дата обновления:** 21 сентября 2026 г.
 
 ## Регламент работы
 
@@ -40,6 +40,8 @@
 - [x] Зарегистрировать IPC-обработчики `playwright:run`, `playwright:stop`, `playwright:status` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис автоматического обхода веб-приложения `src/main/services/crawlerService.ts` с BFS-обходом страниц, обнаружением форм/полей ввода, эмуляцией взаимодействий, контролем домена и глубины
 - [x] Зарегистрировать IPC-обработчики `crawler:start`, `crawler:stop` в `src/main/ipc/handlers.ts`
+- [x] Реализовать сервис перехвата сбоев браузера `src/main/services/browserMonitor.ts` (`BrowserErrorStore`, `attachBrowserMonitor`, `getBrowserErrors`, `clearBrowserErrors`) с перехватом HTTP 500+, `requestfailed`, `console`, `pageerror`
+- [x] Зарегистрировать IPC-обработчики `browser:get-errors` и `browser:clear-errors` в `src/main/ipc/handlers.ts`
 
 ### 3. Preload Bridge и типизация (`src/preload/`, `src/renderer/src/types/`, `src/shared/types/`)
 
@@ -64,8 +66,10 @@
 - [x] Добавить метод вызова `window.api.triggerTestLog()`
 - [x] Экспортировать `window.electronAPI` для совместимости
 - [x] Добавить методы `window.api.startCrawler()` и `window.api.stopCrawler()` в `src/preload/index.ts` и `CustomAPI`
+- [x] Добавить методы `window.api.getBrowserErrors()` и `window.api.clearBrowserErrors()` в `src/preload/index.ts` и `CustomAPI`
+- [x] Описать типы `BrowserErrorType`, `BrowserErrorLocation`, `BrowserError` и константы каналов `BROWSER_ERRORS_GET`, `BROWSER_ERRORS_CLEAR` в `@shared/types`
 - [x] Интегрировать методы краулера в `src/renderer/src/services/electronService.ts` с безопасным fallback для web-среды
-- [x] Интегрировать методы в `src/renderer/src/services/electronService.ts` с безопасным fallback для web-среды
+- [x] Интегрировать методы `getBrowserErrors` и `clearBrowserErrors` в `src/renderer/src/services/electronService.ts` с реалистичным mock fallback
 - [x] Реэкспортировать общие типы в `src/renderer/src/types/index.ts` из `@shared/types`
 
 ### 4. Русская локализация и интеграция UI (`src/renderer/src/`)
@@ -86,7 +90,17 @@
 - [x] Создать базовый контейнер `DashboardOverview.tsx` с набором мок-данных и интерактивным переключением сценариев аудита
 - [x] Интегрировать `DashboardOverview` в `Dashboard.tsx` с адаптивной версткой при изменении размера боковой панели
 
-### 6. Верификация и тестирование
+### 6. Browser Error Interceptor — UI-виджет мониторинга (`[CORE ENGINE]` ✅ ЗАВЕРШЕН)
+
+- [x] Создать компонент `src/renderer/src/components/BrowserErrorsWidget.tsx` с полным отображением перехваченных ошибок браузера
+- [x] Реализовать фильтрацию по типу ошибки (`http_error`, `network_failure`, `console_error`, `page_error`) и по источнику (`playwright`, `crawler`)
+- [x] Реализовать раскрываемые детали (`stackTrace`, `details JSON payload`) с кнопкой копирования стектрейса
+- [x] Реализовать автообновление (polling 4 с) с переключателем Авто/Стоп и ручным рефрешем
+- [x] Интегрировать `BrowserErrorsWidget` в `Dashboard.tsx` после секции общих метрик
+- [x] Обновить `BACKLOG.md`: отметить задачу `[CORE ENGINE]` как выполненную (`[x]`)
+- [x] Обновить `ARCHITECTURE.md`: добавить `browser:get-errors` и `browser:clear-errors` в таблицу IPC-каналов, исправить дублирование строк
+
+### 7. Верификация и тестирование
 
 - [x] Проверка типов: `pnpm typecheck` (tsc node + web без ошибок)
 - [x] Линтер и форматирование: `pnpm lint` и `pnpm format` (0 ошибок, 0 предупреждений)
@@ -95,6 +109,23 @@
 ---
 
 ## Журнал изменений (Changelog)
+
+- **21.09.2026 (Browser Error Interceptor — [CORE ENGINE] ✅ полностью завершен)**:
+  - Создан сервис `src/main/services/browserMonitor.ts`: класс `BrowserErrorStore` с in-memory буфером (лимит 500 записей, FIFO), методами `addError`, `getErrors` (с фильтрацией по `source` и `type`), `clear`, `formatForAiContext` (Markdown для Gemini AI).
+  - Реализована функция `attachBrowserMonitor(target: Page | BrowserContext, source, onError?)`: перехват `response` (HTTP ≥ 500), `requestfailed` (DNS/CORS/ECONNREFUSED), `console` (тип `error` с location), `pageerror` (полный стектрейс JS-исключений); защита от дублей через `WeakSet<Page>`.
+  - Функция поддерживает передачу `BrowserContext`: автоматически подписывается на `context.on('page', ...)` для будущих страниц и сразу обходит существующие страницы контекста.
+  - Экспортированы функции `getBrowserErrors(filter?)` и `clearBrowserErrors(source?)` для IPC-слоя.
+  - В `src/main/services/crawlerService.ts`: заменена ручная подписка `console`/`pageerror` на единый вызов `attachBrowserMonitor(page, 'crawler', (err) => pageErrors.push(...))` — краулер теперь автоматически перехватывает HTTP 500+ и сетевые сбои.
+  - В `src/main/services/playwrightRunner.ts`: добавлены методы `attachMonitor`, `createMonitoredContext`, `createMonitoredPage`; перед запуском тестов вызывается `clearBrowserErrors('playwright')` для сброса буфера предыдущей сессии.
+  - В `src/main/ipc/handlers.ts`: зарегистрированы обработчики `browser:get-errors` и `browser:clear-errors`.
+  - В `src/preload/index.ts`: добавлены методы `getBrowserErrors` и `clearBrowserErrors` в `api` через `contextBridge`.
+  - В `src/shared/types/index.ts`: добавлены типы `BrowserErrorType`, `BrowserErrorLocation`, `BrowserError`, константы `BROWSER_ERRORS_GET`, `BROWSER_ERRORS_CLEAR` и методы в интерфейс `CustomAPI`.
+  - В `src/renderer/src/services/electronService.ts`: добавлены методы `getBrowserErrors` и `clearBrowserErrors` с детализированным mock-fallback (4 реалистичных примера: HTTP 502, net::ERR_CONNECTION_REFUSED, console TypeError, ChunkLoadError с полным стектрейсом).
+  - Создан `src/renderer/src/components/BrowserErrorsWidget.tsx`: полнофункциональный React-компонент с цветовой маркировкой типов ошибок, фильтрацией по типу/источнику, авто-polling (4 с), раскрываемыми деталями (stackTrace + JSON payload), кнопкой копирования, счётчиком по категориям, очисткой по источнику.
+  - Интегрирован `BrowserErrorsWidget` в `src/renderer/src/components/Dashboard.tsx` — выводится после панели общих метрик.
+  - `BACKLOG.md`: задача `Логгер перехвата HTTP 500+ и крашей браузерной консоли` отмечена `[x]` — домен `[CORE ENGINE]` полностью завершен (3/3 задачи).
+  - `ARCHITECTURE.md`: таблица IPC-каналов исправлена (убрано дублирование) и расширена строками `browser:get-errors` и `browser:clear-errors`.
+  - Проведена полная проверка качества: `pnpm typecheck` (tsc node + web без ошибок, код 0).
 
 - **18.09.2026 (Модуль автоматизированного обхода веб-приложения — CrawlerService)**:
   - Установлена зависимость `playwright` (`pnpm add playwright`) для использования Playwright library API в главном процессе.

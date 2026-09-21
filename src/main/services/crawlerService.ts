@@ -1,6 +1,7 @@
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
 import { app } from 'electron'
 import { loggerService } from './loggerService'
+import { attachBrowserMonitor } from './browserMonitor'
 import type {
   CrawlerOptions,
   CrawlResult,
@@ -232,20 +233,9 @@ export class CrawlerService {
     try {
       page = await this.context.newPage()
 
-      // Capture JS console errors
-      page.on('console', (msg) => {
-        if (msg.type() === 'error') {
-          const errorText = `JS Console Error: ${msg.text()}`
-          pageErrors.push(errorText)
-          loggerService.warn('crawler', `[${url}] ${errorText}`)
-        }
-      })
-
-      // Capture unhandled page errors
-      page.on('pageerror', (err) => {
-        const errorText = `Page Error: ${err.message}`
-        pageErrors.push(errorText)
-        loggerService.error('crawler', `[${url}] ${errorText}`)
+      // Attach browser monitor to intercept HTTP 500+, network failures, console errors, and page exceptions
+      attachBrowserMonitor(page, 'crawler', (err) => {
+        pageErrors.push(`[${err.type.toUpperCase()}] ${err.message}`)
       })
 
       // Navigate with timeout
