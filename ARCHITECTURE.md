@@ -99,29 +99,20 @@
 | `app:ping`              | Renderer -> Main | Проверка доступности IPC моста                             | `() => Promise<string>`                                                               |
 | `app:get-system-info`   | Renderer -> Main | Получение версий среды (Node, Electron, OS, Chrome)        | `() => Promise<SystemInfo>`                                                           |
 | `dialog:select-project` | Renderer -> Main | Нативный диалог выбора папки + рекурсивный сканер файлов   | `() => Promise<ProjectScanResult>`                                                    |
-| `worker:playwright-run` | Renderer -> Main | Триггер запуска тестового сценария Playwright              | `(params: { suite?: string }) => Promise<PlaywrightRunResult>`                        |
-| `project:parse-context` | Renderer -> Main | Селективный парсер исходного кода и конфигов для AI        | `(projectPath: string) => Promise<ProjectContext>`                                    |
-| `stream:log-event`      | Main -> Renderer | Потоковая передача логов и событий воркеров                | `(payload: LogEvent) => void`                                                         |
-| `app:trigger-test-log`  | Renderer -> Main | Диагностический триггер события логов реального времени    | `(params?: TestLogParams) => Promise<LogEvent>`                                       |
-| `settings:get`          | Renderer -> Main | Чтение сохраненных настроек приложения (userData)          | `() => Promise<AppSettings>`                                                          |
-| `settings:save`         | Renderer -> Main | Сохранение и слияние настроек приложения в JSON на диске   | `(newSettings: Partial<AppSettings>) => Promise<AppSettings>`                         |
-| `ai:test-connection`    | Renderer -> Main | Валидация Gemini API ключа и проверка связи с моделью      | `(apiKey?: string) => Promise<GeminiConnectionTestResult>`                            |
-| Канал                   | Направление      | Описание                                                   | Сигнатура данных                                                                      |
-| :---------------------- | :--------------- | :--------------------------------------------------------- | :------------------------------------------------------------------------------------ |
-| `app:ping`              | Renderer -> Main | Проверка доступности IPC моста                             | `() => Promise<string>`                                                               |
-| `app:get-system-info`   | Renderer -> Main | Получение версий среды (Node, Electron, OS, Chrome)        | `() => Promise<SystemInfo>`                                                           |
-| `dialog:select-project` | Renderer -> Main | Нативный диалог выбора папки + рекурсивный сканер файлов   | `() => Promise<ProjectScanResult>`                                                    |
 | `playwright:run`        | Renderer -> Main | Запуск тестов Playwright (выбор браузера, headed/headless) | `(options?: PlaywrightRunOptions) => Promise<{ success: boolean; message?: string }>` |
 | `playwright:stop`       | Renderer -> Main | Остановка и завершение процессов тестов Playwright         | `() => Promise<void>`                                                                 |
 | `playwright:status`     | Renderer -> Main | Получение текущего статуса активности Playwright runner    | `() => Promise<PlaywrightRunStatus>`                                                  |
 | `worker:playwright-run` | Renderer -> Main | Легаси-триггер запуска тестового сценария Playwright       | `(params: { suite?: string }) => Promise<PlaywrightRunResult>`                        |
 | `crawler:start`         | Renderer -> Main | Запуск автоматического обхода веб-приложения (BFS краулер) | `(options: CrawlerOptions) => Promise<CrawlResult>`                                   |
 | `crawler:stop`          | Renderer -> Main | Остановка активного обхода веб-приложения                  | `() => Promise<void>`                                                                 |
+| `browser:get-errors`    | Renderer -> Main | Получение перехваченных ошибок браузера из буфера сессии   | `(filter?: { source?: 'playwright' \| 'crawler'; type?: BrowserErrorType }) => Promise<BrowserError[]>` |
+| `browser:clear-errors`  | Renderer -> Main | Очистка перехваченных ошибок браузера в сессии             | `(source?: 'playwright' \| 'crawler') => Promise<void>`                               |
 | `project:parse-context` | Renderer -> Main | Селективный парсер исходного кода и конфигов для AI        | `(projectPath: string) => Promise<ProjectContext>`                                    |
 | `stream:log-event`      | Main -> Renderer | Потоковая передача логов и событий воркеров                | `(payload: LogEvent) => void`                                                         |
 | `app:trigger-test-log`  | Renderer -> Main | Диагностический триггер события логов реального времени    | `(params?: TestLogParams) => Promise<LogEvent>`                                       |
 | `settings:get`          | Renderer -> Main | Чтение сохраненных настроек приложения (userData)          | `() => Promise<AppSettings>`                                                          |
 | `settings:save`         | Renderer -> Main | Сохранение и слияние настроек приложения в JSON на диске   | `(newSettings: Partial<AppSettings>) => Promise<AppSettings>`                         |
+| `ai:test-connection`    | Renderer -> Main | Валидация Gemini API ключа и проверка связи с моделью      | `(apiKey?: string) => Promise<GeminiConnectionTestResult>`                            |
 
 ---
 

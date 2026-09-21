@@ -223,7 +223,34 @@ export interface CrawlResult {
 }
 
 // ==========================================
-// 8. IPC Channels Protocol
+// 8. Browser Error Interceptor & Monitoring
+// ==========================================
+
+export type BrowserErrorType = 'http_error' | 'network_failure' | 'console_error' | 'page_error'
+
+export interface BrowserErrorLocation {
+  url?: string
+  lineNumber?: number
+  columnNumber?: number
+}
+
+export interface BrowserError {
+  id: string
+  timestamp: number
+  source: 'playwright' | 'crawler'
+  type: BrowserErrorType
+  url?: string
+  message: string
+  statusCode?: number
+  statusText?: string
+  failureText?: string
+  location?: BrowserErrorLocation
+  stackTrace?: string
+  details?: Record<string, unknown>
+}
+
+// ==========================================
+// 9. IPC Channels Protocol
 // ==========================================
 
 export const IPC_CHANNELS = {
@@ -241,13 +268,15 @@ export const IPC_CHANNELS = {
   SETTINGS_SAVE: 'settings:save',
   CRAWLER_START: 'crawler:start',
   CRAWLER_STOP: 'crawler:stop',
-  AI_TEST_CONNECTION: 'ai:test-connection'
+  AI_TEST_CONNECTION: 'ai:test-connection',
+  BROWSER_ERRORS_GET: 'browser:get-errors',
+  BROWSER_ERRORS_CLEAR: 'browser:clear-errors'
 } as const
 
 export type IpcChannelName = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
 
 // ==========================================
-// 9. Typed Electron Bridge API
+// 10. Typed Electron Bridge API
 // ==========================================
 
 export interface CustomAPI {
@@ -266,6 +295,11 @@ export interface CustomAPI {
   startCrawler: (options: CrawlerOptions) => Promise<CrawlResult>
   stopCrawler: () => Promise<void>
   testGeminiConnection: (apiKey?: string) => Promise<GeminiConnectionTestResult>
+  getBrowserErrors: (filter?: {
+    source?: 'playwright' | 'crawler'
+    type?: BrowserErrorType
+  }) => Promise<BrowserError[]>
+  clearBrowserErrors: (source?: 'playwright' | 'crawler') => Promise<void>
 }
 
 /**
