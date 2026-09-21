@@ -7,7 +7,7 @@ import type {
   LogLevel,
   LogSource,
   AppSettings,
-  GeminiConnectionTestResult
+  GeminiConnectionTestResult,
   PlaywrightRunOptions,
   PlaywrightRunStatus,
   CrawlerOptions,
@@ -203,6 +203,10 @@ class ElectronService {
   async stopCrawler(): Promise<void> {
     if (this.isElectronAvailable() && typeof window.api.stopCrawler === 'function') {
       await window.api.stopCrawler()
+    }
+  }
+
+  /**
    * Tests connection to Google Gemini API using the provided or saved API key.
    */
   async testGeminiConnection(apiKey?: string): Promise<GeminiConnectionTestResult> {

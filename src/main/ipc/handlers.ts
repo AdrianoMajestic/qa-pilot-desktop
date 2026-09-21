@@ -15,7 +15,7 @@ import {
   type LogSource,
   type LogEvent,
   type AppSettings,
-  type GeminiConnectionTestResult
+  type GeminiConnectionTestResult,
   type PlaywrightRunOptions,
   type PlaywrightRunStatus,
   type CrawlerOptions,
@@ -41,7 +41,7 @@ export type {
   LogSource,
   LogEvent,
   AppSettings,
-  GeminiConnectionTestResult
+  GeminiConnectionTestResult,
   PlaywrightRunOptions,
   PlaywrightRunStatus,
   CrawlerOptions,

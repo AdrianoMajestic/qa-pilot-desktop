@@ -51,7 +51,7 @@ export const api: CustomAPI = {
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SAVE, settings),
   startCrawler: (options: CrawlerOptions): Promise<CrawlResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_START, options),
-  stopCrawler: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_STOP)
+  stopCrawler: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_STOP),
   testGeminiConnection: (apiKey?: string): Promise<GeminiConnectionTestResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, apiKey)
 }
