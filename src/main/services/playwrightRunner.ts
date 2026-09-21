@@ -1,7 +1,9 @@
 import { spawn, ChildProcess } from 'node:child_process'
 import { app } from 'electron'
+import type { Page, BrowserContext } from 'playwright'
 import { loggerService } from './loggerService'
 import { getSettings } from './settingsService'
+import { attachBrowserMonitor, clearBrowserErrors } from './browserMonitor'
 import type { PlaywrightRunOptions, PlaywrightRunStatus, PlaywrightBrowser } from '@shared/types'
 
 /**
@@ -36,6 +38,31 @@ export class PlaywrightRunner {
   }
 
   /**
+   * Attaches the Browser Error Interceptor to a Playwright Page or BrowserContext.
+   */
+  attachMonitor(target: Page | BrowserContext): void {
+    attachBrowserMonitor(target, 'playwright')
+  }
+
+  /**
+   * Creates a new managed BrowserContext with attached browser error monitoring.
+   */
+  async createMonitoredContext(browser: { newContext: () => Promise<BrowserContext> }): Promise<BrowserContext> {
+    const context = await browser.newContext()
+    attachBrowserMonitor(context, 'playwright')
+    return context
+  }
+
+  /**
+   * Creates a new managed Page with attached browser error monitoring.
+   */
+  async createMonitoredPage(context: BrowserContext): Promise<Page> {
+    const page = await context.newPage()
+    attachBrowserMonitor(page, 'playwright')
+    return page
+  }
+
+  /**
    * Runs Playwright test suite with specified options.
    * Default: headed: true, browser: 'chromium'.
    */
@@ -49,6 +76,9 @@ export class PlaywrightRunner {
       loggerService.warn('playwright', msg)
       return { success: false, message: msg }
     }
+
+    // Reset previous playwright error session
+    clearBrowserErrors('playwright')
 
     const persistentSettings = await getSettings()
 

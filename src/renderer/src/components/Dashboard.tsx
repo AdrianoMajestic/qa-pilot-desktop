@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import type { SystemStatus, TestSuiteSummary, ProjectStats } from '../types'
 import { electronService } from '../services/electronService'
 import { DashboardOverview } from './DashboardOverview'
+import { BrowserErrorsWidget } from './BrowserErrorsWidget'
 
 interface DashboardProps {
   status: SystemStatus
@@ -276,6 +277,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Browser Error Interceptor & Monitoring Widget */}
+      <BrowserErrorsWidget onTriggerLog={onTriggerLog} />
 
       {/* Test Suites Panel */}
       <div className="rounded-xl bg-slate-900 border border-slate-800/80 overflow-hidden shadow-sm">

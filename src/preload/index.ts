@@ -14,6 +14,8 @@ import {
   type CrawlerOptions,
   type CrawlResult,
   type GeminiConnectionTestResult,
+  type BrowserError,
+  type BrowserErrorType,
   type CustomAPI
 } from '@shared/types'
 
@@ -53,7 +55,13 @@ export const api: CustomAPI = {
     ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_START, options),
   stopCrawler: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_STOP),
   testGeminiConnection: (apiKey?: string): Promise<GeminiConnectionTestResult> =>
-    ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, apiKey)
+    ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, apiKey),
+  getBrowserErrors: (filter?: {
+    source?: 'playwright' | 'crawler'
+    type?: BrowserErrorType
+  }): Promise<BrowserError[]> => ipcRenderer.invoke(IPC_CHANNELS.BROWSER_ERRORS_GET, filter),
+  clearBrowserErrors: (source?: 'playwright' | 'crawler'): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.BROWSER_ERRORS_CLEAR, source)
 }
 
 // Expose APIs via contextBridge when context isolation is enabled

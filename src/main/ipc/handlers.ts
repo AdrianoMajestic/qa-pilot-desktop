@@ -19,7 +19,9 @@ import {
   type PlaywrightRunOptions,
   type PlaywrightRunStatus,
   type CrawlerOptions,
-  type CrawlResult
+  type CrawlResult,
+  type BrowserError,
+  type BrowserErrorType
 } from '@shared/types'
 import { parseProjectContext } from '../services/projectParser'
 import { loggerService } from '../services/loggerService'
@@ -27,6 +29,7 @@ import { getSettings, saveSettings } from '../services/settingsService'
 import { testGeminiConnection } from '../services/geminiClient'
 import { playwrightRunner } from '../services/playwrightRunner'
 import { crawlerService } from '../services/crawlerService'
+import { getBrowserErrors, clearBrowserErrors } from '../services/browserMonitor'
 
 export type {
   FileNode,
@@ -310,6 +313,24 @@ export function registerIpcHandlers(): void {
     IPC_CHANNELS.AI_TEST_CONNECTION,
     async (_event, apiKey?: string): Promise<GeminiConnectionTestResult> => {
       return testGeminiConnection(apiKey)
+    }
+  )
+
+  // Browser Error Interceptor Handlers
+  ipcMain.handle(
+    IPC_CHANNELS.BROWSER_ERRORS_GET,
+    async (
+      _event,
+      filter?: { source?: 'playwright' | 'crawler'; type?: BrowserErrorType }
+    ): Promise<BrowserError[]> => {
+      return getBrowserErrors(filter)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.BROWSER_ERRORS_CLEAR,
+    async (_event, source?: 'playwright' | 'crawler'): Promise<void> => {
+      clearBrowserErrors(source)
     }
   )
 }
