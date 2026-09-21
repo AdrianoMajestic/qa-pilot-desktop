@@ -325,7 +325,14 @@ export async function parseProjectContext(projectPath: string): Promise<ProjectC
       configFiles.map((c) => c.relativePath)
     )
 
-    // 5. Generate AI context summary string
+    // 5. Calculate total context volume and approximate token count (1 token ~= 4 bytes UTF-8)
+    const pkgBytes = pkgSummary?.rawContent ? Buffer.byteLength(pkgSummary.rawContent, 'utf-8') : 0
+    const configBytes = configFiles.reduce((acc, f) => acc + f.size, 0)
+    const entryBytes = entryPoints.reduce((acc, f) => acc + f.size, 0)
+    const totalBytes = pkgBytes + configBytes + entryBytes
+    const estimatedTokens = Math.ceil(totalBytes / 4)
+
+    // 6. Generate AI context summary string
     const summary = buildMarkdownSummary(
       projectPath,
       pkgSummary?.name || projectName,
@@ -345,6 +352,8 @@ export async function parseProjectContext(projectPath: string): Promise<ProjectC
       configFiles,
       entryPoints,
       summary,
+      totalBytes,
+      estimatedTokens,
       error: pkgError
     }
   } catch (error) {
@@ -365,6 +374,8 @@ export async function parseProjectContext(projectPath: string): Promise<ProjectC
       configFiles: [],
       entryPoints: [],
       summary: `Ошибка парсинга проекта: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
+      totalBytes: 0,
+      estimatedTokens: 0,
       error: error instanceof Error ? error.message : 'Неизвестная ошибка'
     }
   }
