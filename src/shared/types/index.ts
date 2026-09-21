@@ -128,6 +128,8 @@ export interface ProjectContext {
   configFiles: ConfigFileInfo[]
   entryPoints: EntryPointInfo[]
   summary: string
+  totalBytes?: number
+  estimatedTokens?: number
   error?: string
 }
 
