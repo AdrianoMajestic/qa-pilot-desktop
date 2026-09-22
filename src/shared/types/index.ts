@@ -183,6 +183,38 @@ export interface ArchitectureAnalysisResult {
   timestamp: number
 }
 
+export interface PlaywrightSessionStats {
+  totalTests: number
+  passedTests: number
+  failedTests: number
+  lastRunSuccess?: boolean
+}
+
+export interface QASessionData {
+  projectName?: string
+  architecture?: ArchitectureAnalysisResult
+  playwright?: PlaywrightSessionStats
+  crawler?: CrawlResult
+  browserErrors?: BrowserError[]
+}
+
+export interface QualityRadarMetrics {
+  codeCoverage: number
+  aiInsights: number
+  security: number
+  dependencyHealth: number
+  runtimeStability: number
+  testSuccess: number
+}
+
+export interface FinalQAReport {
+  overallScore: number
+  radarMetrics: QualityRadarMetrics
+  executiveSummary: string[]
+  criticalIssuesCount: number
+  generatedAt: number
+}
+
 // ==========================================
 // 7. Web Application Crawler
 // ==========================================
@@ -282,6 +314,7 @@ export const IPC_CHANNELS = {
   CRAWLER_STOP: 'crawler:stop',
   AI_TEST_CONNECTION: 'ai:test-connection',
   AI_ANALYZE_ARCHITECTURE: 'ai:analyze-architecture',
+  AI_GENERATE_FINAL_REPORT: 'ai:generate-final-report',
   BROWSER_ERRORS_GET: 'browser:get-errors',
   BROWSER_ERRORS_CLEAR: 'browser:clear-errors'
 } as const
@@ -309,6 +342,7 @@ export interface CustomAPI {
   stopCrawler: () => Promise<void>
   testGeminiConnection: (apiKey?: string) => Promise<GeminiConnectionTestResult>
   analyzeArchitecture: (context: ProjectContext) => Promise<ArchitectureAnalysisResult>
+  generateFinalReport: (data: QASessionData) => Promise<FinalQAReport>
   getBrowserErrors: (filter?: {
     source?: 'playwright' | 'crawler'
     type?: BrowserErrorType

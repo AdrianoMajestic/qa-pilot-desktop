@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import type { DashboardOverviewProps, OverallScoreData, HealthRadarData } from '../types'
 import { OverallScoreWidget } from './OverallScoreWidget'
 import { HealthRadarWidget } from './HealthRadarWidget'
+import { mapFinalReportToHealthRadar, mapFinalReportToOverallScore } from '../utils/qaReportMapping'
 
 const defaultOverallScoreMock: OverallScoreData = {
   score: 86,
@@ -222,15 +223,27 @@ const mockPresets: Record<string, { score: OverallScoreData; radar: HealthRadarD
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   overallScore: propScore,
   healthRadar: propRadar,
+  finalReport,
+  isGeneratingReport = false,
+  onGenerateReport,
   className = ''
 }) => {
   const [selectedPreset, setSelectedPreset] = useState<'optimal' | 'warning' | 'critical'>(
     'optimal'
   )
 
-  // Use props if supplied, otherwise fallback to selected preset mock data
-  const currentScore = propScore || mockPresets[selectedPreset].score
-  const currentRadar = propRadar || mockPresets[selectedPreset].radar
+  const reportScore = useMemo(
+    () => (finalReport ? mapFinalReportToOverallScore(finalReport) : undefined),
+    [finalReport]
+  )
+  const reportRadar = useMemo(
+    () => (finalReport ? mapFinalReportToHealthRadar(finalReport) : undefined),
+    [finalReport]
+  )
+
+  const hasLiveReport = Boolean(finalReport)
+  const currentScore = reportScore ?? propScore ?? mockPresets[selectedPreset].score
+  const currentRadar = reportRadar ?? propRadar ?? mockPresets[selectedPreset].radar
 
   return (
     <section className={`space-y-4 ${className}`} aria-label="Визуальный дашборд качества">
@@ -263,43 +276,118 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
         </div>
 
-        {/* Demo Preset Buttons to test thresholds (<50 red, 50-79 amber, 80+ emerald) */}
-        {!propScore && (
-          <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-lg border border-slate-800/80 self-start sm:self-auto">
-            <span className="text-[10px] text-slate-500 px-1 font-medium">Тестовый срез:</span>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {onGenerateReport && (
             <button
-              onClick={() => setSelectedPreset('optimal')}
-              className={`px-2 py-1 rounded text-[11px] font-medium transition-all cursor-pointer ${
-                selectedPreset === 'optimal'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
+              type="button"
+              onClick={onGenerateReport}
+              disabled={isGeneratingReport}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              86% Оптимально
+              {isGeneratingReport ? (
+                <>
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Формирование отчёта...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Сформировать QA-отчёт
+                </>
+              )}
             </button>
-            <button
-              onClick={() => setSelectedPreset('warning')}
-              className={`px-2 py-1 rounded text-[11px] font-medium transition-all cursor-pointer ${
-                selectedPreset === 'warning'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              68% Внимание
-            </button>
-            <button
-              onClick={() => setSelectedPreset('critical')}
-              className={`px-2 py-1 rounded text-[11px] font-medium transition-all cursor-pointer ${
-                selectedPreset === 'critical'
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              42% Критично
-            </button>
-          </div>
-        )}
+          )}
+
+          {/* Demo Preset Buttons — hidden when live report is active */}
+          {!hasLiveReport && !propScore && (
+            <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-lg border border-slate-800/80">
+              <span className="text-[10px] text-slate-500 px-1 font-medium">Тестовый срез:</span>
+              <button
+                onClick={() => setSelectedPreset('optimal')}
+                className={`px-2 py-1 rounded text-[11px] font-medium transition-all cursor-pointer ${
+                  selectedPreset === 'optimal'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                86% Оптимально
+              </button>
+              <button
+                onClick={() => setSelectedPreset('warning')}
+                className={`px-2 py-1 rounded text-[11px] font-medium transition-all cursor-pointer ${
+                  selectedPreset === 'warning'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                68% Внимание
+              </button>
+              <button
+                onClick={() => setSelectedPreset('critical')}
+                className={`px-2 py-1 rounded text-[11px] font-medium transition-all cursor-pointer ${
+                  selectedPreset === 'critical'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                42% Критично
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {hasLiveReport && finalReport && (
+        <div className="rounded-xl bg-slate-900 border border-indigo-800/40 p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-slate-100">Executive Summary</h3>
+            <span className="text-[10px] font-mono text-slate-500">
+              {new Date(finalReport.generatedAt).toLocaleString('ru-RU')}
+            </span>
+          </div>
+          <ul className="space-y-2">
+            {finalReport.executiveSummary.map((bullet, index) => (
+              <li
+                key={`${index}-${bullet.slice(0, 24)}`}
+                className="flex gap-2 text-xs text-slate-300 leading-relaxed"
+              >
+                <span className="text-indigo-400 shrink-0">•</span>
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="text-[11px] text-slate-500">
+            Критических сигналов:{' '}
+            <span className="text-rose-400 font-mono">{finalReport.criticalIssuesCount}</span>
+          </div>
+        </div>
+      )}
 
       {/* Widgets Grid: OverallScoreWidget (Radial Gauge) + HealthRadarWidget (Spider Chart) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">

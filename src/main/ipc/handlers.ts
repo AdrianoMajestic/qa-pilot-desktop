@@ -17,6 +17,8 @@ import {
   type AppSettings,
   type GeminiConnectionTestResult,
   type ArchitectureAnalysisResult,
+  type QASessionData,
+  type FinalQAReport,
   type PlaywrightRunOptions,
   type PlaywrightRunStatus,
   type CrawlerOptions,
@@ -29,6 +31,7 @@ import { loggerService } from '../services/loggerService'
 import { getSettings, saveSettings } from '../services/settingsService'
 import { testGeminiConnection } from '../services/geminiClient'
 import { analyzeArchitecture } from '../services/architectureAnalyzer'
+import { generateFinalQAReport } from '../services/reportGenerator'
 import { playwrightRunner } from '../services/playwrightRunner'
 import { crawlerService } from '../services/crawlerService'
 import { getBrowserErrors, clearBrowserErrors } from '../services/browserMonitor'
@@ -322,6 +325,13 @@ export function registerIpcHandlers(): void {
     IPC_CHANNELS.AI_ANALYZE_ARCHITECTURE,
     async (_event, context: ProjectContext): Promise<ArchitectureAnalysisResult> => {
       return analyzeArchitecture(context)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.AI_GENERATE_FINAL_REPORT,
+    async (_event, sessionData: QASessionData): Promise<FinalQAReport> => {
+      return generateFinalQAReport(sessionData)
     }
   )
 

@@ -114,6 +114,7 @@
 | `settings:save`         | Renderer -> Main | Сохранение и слияние настроек приложения в JSON на диске   | `(newSettings: Partial<AppSettings>) => Promise<AppSettings>`                         |
 | `ai:test-connection`    | Renderer -> Main | Валидация Gemini API ключа и проверка связи с моделью      | `(apiKey?: string) => Promise<GeminiConnectionTestResult>`                            |
 | `ai:analyze-architecture` | Renderer -> Main | AI-анализ архитектуры и структуры файлов (Gemini JSON)   | `(context: ProjectContext) => Promise<ArchitectureAnalysisResult>`                  |
+| `ai:generate-final-report` | Renderer -> Main | Агрегация Overall QA Score и итогового отчёта (Gemini) | `(data: QASessionData) => Promise<FinalQAReport>`                                   |
 
 ---
 

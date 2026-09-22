@@ -1,8 +1,15 @@
 import React, { useState } from 'react'
-import type { SystemStatus, TestSuiteSummary, ProjectStats } from '../types'
+import type {
+  SystemStatus,
+  TestSuiteSummary,
+  ProjectStats,
+  FinalQAReport,
+  QASessionData
+} from '../types'
 import { electronService } from '../services/electronService'
 import { DashboardOverview } from './DashboardOverview'
 import { BrowserErrorsWidget } from './BrowserErrorsWidget'
+import { playwrightStatsFromSuites } from '../utils/qaReportMapping'
 
 interface DashboardProps {
   status: SystemStatus
@@ -24,6 +31,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onTriggerLog
 }) => {
   const [runningWorker, setRunningWorker] = useState(false)
+  const [finalReport, setFinalReport] = useState<FinalQAReport | null>(null)
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false)
 
   const initialSuites: TestSuiteSummary[] = [
     {
@@ -51,6 +60,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
       passedTests: 5
     }
   ]
+
+  const handleGenerateReport = async (): Promise<void> => {
+    setIsGeneratingReport(true)
+    onTriggerLog('Запуск агрегации итогового QA-отчёта (Main process)...', 'info')
+
+    try {
+      const browserErrors = await electronService.getBrowserErrors()
+      const playwright = playwrightStatsFromSuites(initialSuites)
+
+      let architecture: QASessionData['architecture']
+      if (projectPath) {
+        onTriggerLog('AI-анализ архитектуры для отчёта...', 'info')
+        const context = await electronService.parseProjectContext(projectPath)
+        architecture = await electronService.analyzeArchitecture(context)
+      }
+
+      const sessionData: QASessionData = {
+        projectName: projectName ?? undefined,
+        architecture,
+        playwright,
+        browserErrors
+      }
+
+      const report = await electronService.generateFinalReport(sessionData)
+      setFinalReport(report)
+      onTriggerLog(
+        `Итоговый QA-отчёт готов: Overall Score ${report.overallScore}/100, критических сигналов: ${report.criticalIssuesCount}`,
+        report.overallScore >= 80 ? 'success' : report.overallScore >= 50 ? 'warn' : 'error'
+      )
+    } catch (err) {
+      onTriggerLog(
+        `Ошибка формирования QA-отчёта: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`,
+        'error'
+      )
+    } finally {
+      setIsGeneratingReport(false)
+    }
+  }
 
   const handleRunPlaywright = async (suiteName: string): Promise<void> => {
     setRunningWorker(true)
@@ -237,7 +284,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Visual Quality Dashboard (Overall Score & Health Radar Widgets) */}
-      <DashboardOverview />
+      <DashboardOverview
+        finalReport={finalReport}
+        isGeneratingReport={isGeneratingReport}
+        onGenerateReport={handleGenerateReport}
+      />
 
       {/* General Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
