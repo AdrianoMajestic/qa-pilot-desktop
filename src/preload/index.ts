@@ -14,6 +14,7 @@ import {
   type CrawlerOptions,
   type CrawlResult,
   type GeminiConnectionTestResult,
+  type ArchitectureAnalysisResult,
   type BrowserError,
   type BrowserErrorType,
   type CustomAPI
@@ -56,6 +57,8 @@ export const api: CustomAPI = {
   stopCrawler: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_STOP),
   testGeminiConnection: (apiKey?: string): Promise<GeminiConnectionTestResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, apiKey),
+  analyzeArchitecture: (context: ProjectContext): Promise<ArchitectureAnalysisResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_ANALYZE_ARCHITECTURE, context),
   getBrowserErrors: (filter?: {
     source?: 'playwright' | 'crawler'
     type?: BrowserErrorType

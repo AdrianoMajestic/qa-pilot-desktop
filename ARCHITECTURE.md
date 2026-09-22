@@ -113,6 +113,7 @@
 | `settings:get`          | Renderer -> Main | Чтение сохраненных настроек приложения (userData)          | `() => Promise<AppSettings>`                                                          |
 | `settings:save`         | Renderer -> Main | Сохранение и слияние настроек приложения в JSON на диске   | `(newSettings: Partial<AppSettings>) => Promise<AppSettings>`                         |
 | `ai:test-connection`    | Renderer -> Main | Валидация Gemini API ключа и проверка связи с моделью      | `(apiKey?: string) => Promise<GeminiConnectionTestResult>`                            |
+| `ai:analyze-architecture` | Renderer -> Main | AI-анализ архитектуры и структуры файлов (Gemini JSON)   | `(context: ProjectContext) => Promise<ArchitectureAnalysisResult>`                  |
 
 ---
 

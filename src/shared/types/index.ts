@@ -171,6 +171,20 @@ export interface GeminiConnectionTestResult {
   message: string
 }
 
+export interface UntestedArea {
+  path: string
+  reason: string
+  riskLevel: 'high' | 'medium' | 'low'
+}
+
+export interface ArchitectureAnalysisResult {
+  healthScore: number
+  untestedAreas: UntestedArea[]
+  vulnerabilities: string[]
+  recommendations: string[]
+  timestamp: number
+}
+
 // ==========================================
 // 7. Web Application Crawler
 // ==========================================
@@ -269,6 +283,7 @@ export const IPC_CHANNELS = {
   CRAWLER_START: 'crawler:start',
   CRAWLER_STOP: 'crawler:stop',
   AI_TEST_CONNECTION: 'ai:test-connection',
+  AI_ANALYZE_ARCHITECTURE: 'ai:analyze-architecture',
   BROWSER_ERRORS_GET: 'browser:get-errors',
   BROWSER_ERRORS_CLEAR: 'browser:clear-errors'
 } as const
@@ -295,6 +310,7 @@ export interface CustomAPI {
   startCrawler: (options: CrawlerOptions) => Promise<CrawlResult>
   stopCrawler: () => Promise<void>
   testGeminiConnection: (apiKey?: string) => Promise<GeminiConnectionTestResult>
+  analyzeArchitecture: (context: ProjectContext) => Promise<ArchitectureAnalysisResult>
   getBrowserErrors: (filter?: {
     source?: 'playwright' | 'crawler'
     type?: BrowserErrorType

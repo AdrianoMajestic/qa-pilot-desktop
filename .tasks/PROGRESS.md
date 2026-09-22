@@ -3,7 +3,8 @@
 ## Текущий статус проекта
 
 - **Фаза:** Реализован полный стек `[CORE ENGINE]`: Playwright Test Runner, BFS-краулер, **Browser Error Interceptor (HTTP 500+, сетевые сбои, console errors, uncaught JS exceptions)** с IPC-мостом и React UI-виджетом. Все задачи домена `[CORE ENGINE]` завершены.
-- **Дата обновления:** 21 сентября 2026 г.
+- **Дата обновления:** 22 сентября 2026 г.
+- **Фаза (AI):** Реализован сервис **AI Architecture & File Structure Analyzer** (`architectureAnalyzer.ts`) с IPC-каналом `ai:analyze-architecture`, structured JSON через Gemini и типами `ArchitectureAnalysisResult` / `UntestedArea` в `@shared/types`.
 
 ## Регламент работы
 
@@ -36,6 +37,8 @@
 - [x] Установить официальный Google Gen AI SDK (`@google/genai`) как production-зависимость в `package.json`
 - [x] Реализовать клиентский сервис `src/main/services/geminiClient.ts` с динамическим чтением API-ключа из `settingsStore` / `process.env`, методами `getApiKey()`, `testGeminiConnection()` и `generateText()`
 - [x] Зарегистрировать IPC-обработчик `ai:test-connection` в `src/main/ipc/handlers.ts`
+- [x] Реализовать сервис `src/main/services/architectureAnalyzer.ts` (`analyzeArchitecture`, prompt builder, JSON schema + fallback parsing)
+- [x] Зарегистрировать IPC-обработчик `ai:analyze-architecture` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис запуска тестов Playwright `src/main/services/playwrightRunner.ts` с поддержкой Chromium/Firefox/WebKit, headed mode по умолчанию, отменой и стримингом в `loggerService`
 - [x] Зарегистрировать IPC-обработчики `playwright:run`, `playwright:stop`, `playwright:status` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис автоматического обхода веб-приложения `src/main/services/crawlerService.ts` с BFS-обходом страниц, обнаружением форм/полей ввода, эмуляцией взаимодействий, контролем домена и глубины
@@ -57,6 +60,9 @@
 - [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить методы `window.api.getSettings()` и `window.api.saveSettings()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод `window.api.testGeminiConnection(apiKey?: string)` в `src/preload/index.ts` и `src/preload/index.d.ts`
+- [x] Описать интерфейсы `UntestedArea`, `ArchitectureAnalysisResult` и константу канала `AI_ANALYZE_ARCHITECTURE` в `@shared/types`
+- [x] Добавить метод `window.api.analyzeArchitecture(context)` в `src/preload/index.ts` и `CustomAPI` / `window.electronAPI`
+- [x] Интегрировать `analyzeArchitecture` в `src/renderer/src/services/electronService.ts` с web-fallback
 - [x] Описать интерфейсы Playwright `PlaywrightRunOptions`, `PlaywrightRunStatus`, `PlaywrightBrowser` и каналы `PLAYWRIGHT_RUN`, `PLAYWRIGHT_STOP`, `PLAYWRIGHT_STATUS`
 - [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
@@ -111,6 +117,13 @@
 ---
 
 ## Журнал изменений (Changelog)
+
+- **22.09.2026 (AI Architecture Analyzer — [AI INTEGRATION] ✅ анализатор архитектуры)**:
+  - Создан `src/main/services/architectureAnalyzer.ts`: `buildArchitecturePrompt`, `parseArchitectureResponse`, `analyzeArchitecture` с Gemini `responseMimeType: application/json`, `responseJsonSchema`, логированием через `loggerService` (`source: 'ai'`) и обработкой ошибок API/JSON.
+  - В `@shared/types`: добавлены `UntestedArea`, `ArchitectureAnalysisResult`, `IPC_CHANNELS.AI_ANALYZE_ARCHITECTURE`, метод `analyzeArchitecture` в `CustomAPI`.
+  - Зарегистрирован IPC `ai:analyze-architecture` в `handlers.ts`; экспорт в preload (`window.api` / `window.electronAPI`) и `electronService.ts`.
+  - Обновлены `ARCHITECTURE.md`, `BACKLOG.md` (задача анализатора архитектуры отмечена `[x]`).
+  - Проверка: `pnpm typecheck`, `pnpm lint`, `pnpm build`.
 
 - **21.09.2026 (Конфигурация Playwright и перенаправление главной кнопки Dashboard на авто-краулер)**:
   - Создан базовый конфигурационный файл Playwright `playwright.config.ts` в корне проекта (`testDir: './tests'`, `timeout: 30000`, `use: { baseURL: 'http://localhost:3000', trace: 'on-first-retry' }`, `projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]`).
