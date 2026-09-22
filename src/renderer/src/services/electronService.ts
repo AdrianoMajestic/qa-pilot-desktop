@@ -8,6 +8,7 @@ import type {
   LogSource,
   AppSettings,
   GeminiConnectionTestResult,
+  ArchitectureAnalysisResult,
   PlaywrightRunOptions,
   PlaywrightRunStatus,
   CrawlerOptions,
@@ -218,6 +219,22 @@ class ElectronService {
     return {
       success: false,
       message: 'Electron API недоступен в web-режиме (web-fallback).'
+    }
+  }
+
+  /**
+   * Runs Gemini architecture analysis for a parsed project context.
+   */
+  async analyzeArchitecture(context: ProjectContext): Promise<ArchitectureAnalysisResult> {
+    if (this.isElectronAvailable() && typeof window.api.analyzeArchitecture === 'function') {
+      return await window.api.analyzeArchitecture(context)
+    }
+    return {
+      healthScore: 0,
+      untestedAreas: [],
+      vulnerabilities: ['Electron API недоступен в web-режиме (web-fallback).'],
+      recommendations: ['Запустите приложение в Electron для полного AI-анализа.'],
+      timestamp: Date.now()
     }
   }
 

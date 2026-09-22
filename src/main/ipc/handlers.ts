@@ -16,6 +16,7 @@ import {
   type LogEvent,
   type AppSettings,
   type GeminiConnectionTestResult,
+  type ArchitectureAnalysisResult,
   type PlaywrightRunOptions,
   type PlaywrightRunStatus,
   type CrawlerOptions,
@@ -27,6 +28,7 @@ import { parseProjectContext } from '../services/projectParser'
 import { loggerService } from '../services/loggerService'
 import { getSettings, saveSettings } from '../services/settingsService'
 import { testGeminiConnection } from '../services/geminiClient'
+import { analyzeArchitecture } from '../services/architectureAnalyzer'
 import { playwrightRunner } from '../services/playwrightRunner'
 import { crawlerService } from '../services/crawlerService'
 import { getBrowserErrors, clearBrowserErrors } from '../services/browserMonitor'
@@ -313,6 +315,13 @@ export function registerIpcHandlers(): void {
     IPC_CHANNELS.AI_TEST_CONNECTION,
     async (_event, apiKey?: string): Promise<GeminiConnectionTestResult> => {
       return testGeminiConnection(apiKey)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.AI_ANALYZE_ARCHITECTURE,
+    async (_event, context: ProjectContext): Promise<ArchitectureAnalysisResult> => {
+      return analyzeArchitecture(context)
     }
   )
 
