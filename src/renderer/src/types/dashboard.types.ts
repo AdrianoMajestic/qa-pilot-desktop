@@ -54,6 +54,9 @@ export interface HealthRadarWidgetProps {
 export interface DashboardOverviewProps {
   overallScore?: OverallScoreData
   healthRadar?: HealthRadarData
+  finalReport?: import('@shared/types').FinalQAReport | null
+  isGeneratingReport?: boolean
+  onGenerateReport?: () => void
   className?: string
   onSelectProject?: () => void
 }

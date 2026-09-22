@@ -15,6 +15,8 @@ import {
   type CrawlResult,
   type GeminiConnectionTestResult,
   type ArchitectureAnalysisResult,
+  type QASessionData,
+  type FinalQAReport,
   type BrowserError,
   type BrowserErrorType,
   type CustomAPI
@@ -59,6 +61,8 @@ export const api: CustomAPI = {
     ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, apiKey),
   analyzeArchitecture: (context: ProjectContext): Promise<ArchitectureAnalysisResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.AI_ANALYZE_ARCHITECTURE, context),
+  generateFinalReport: (data: QASessionData): Promise<FinalQAReport> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_GENERATE_FINAL_REPORT, data),
   getBrowserErrors: (filter?: {
     source?: 'playwright' | 'crawler'
     type?: BrowserErrorType

@@ -9,6 +9,8 @@ import type {
   AppSettings,
   GeminiConnectionTestResult,
   ArchitectureAnalysisResult,
+  QASessionData,
+  FinalQAReport,
   PlaywrightRunOptions,
   PlaywrightRunStatus,
   CrawlerOptions,
@@ -235,6 +237,29 @@ class ElectronService {
       vulnerabilities: ['Electron API недоступен в web-режиме (web-fallback).'],
       recommendations: ['Запустите приложение в Electron для полного AI-анализа.'],
       timestamp: Date.now()
+    }
+  }
+
+  /**
+   * Aggregates session metrics into a weighted Overall QA Score report (Main process).
+   */
+  async generateFinalReport(sessionData: QASessionData): Promise<FinalQAReport> {
+    if (this.isElectronAvailable() && typeof window.api.generateFinalReport === 'function') {
+      return await window.api.generateFinalReport(sessionData)
+    }
+    return {
+      overallScore: 0,
+      radarMetrics: {
+        codeCoverage: 0,
+        aiInsights: 0,
+        security: 0,
+        dependencyHealth: 0,
+        runtimeStability: 0,
+        testSuccess: 0
+      },
+      executiveSummary: ['Electron API недоступен в web-режиме (web-fallback).'],
+      criticalIssuesCount: 0,
+      generatedAt: Date.now()
     }
   }
 
