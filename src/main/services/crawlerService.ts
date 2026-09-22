@@ -1,6 +1,7 @@
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
 import { app } from 'electron'
 import { loggerService } from './loggerService'
+import { getSettings } from './settingsStore'
 import { attachBrowserMonitor } from './browserMonitor'
 import type {
   CrawlerOptions,
@@ -87,7 +88,13 @@ export class CrawlerService {
 
     // Launch Playwright browser
     try {
-      this.browser = await chromium.launch({ headless: true })
+      const persistentSettings = getSettings()
+      const headless = persistentSettings.playwrightHeadless ?? false
+      loggerService.info(
+        'crawler',
+        `Инициализация браузера Chromium (режим: ${headless ? 'Headless (фоновый)' : 'Headed (графический)'})`
+      )
+      this.browser = await chromium.launch({ headless })
       this.context = await this.browser.newContext({
         userAgent:
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) QA-Pilot-Crawler/1.0 AppleWebKit/537.36',
@@ -130,7 +137,7 @@ export class CrawlerService {
 
         loggerService.info(
           'crawler',
-          `[${visited.size}/${maxPages}] Обход страницы (глубина ${entry.depth}): ${normalizedUrl}`
+          `Переход на страницу: ${normalizedUrl} (глубина: ${entry.depth}, прогресс: ${visited.size}/${maxPages})`
         )
 
         // Analyze page
@@ -238,6 +245,16 @@ export class CrawlerService {
         pageErrors.push(`[${err.type.toUpperCase()}] ${err.message}`)
       })
 
+      // Capture HTTP 500+ server responses
+      page.on('response', (res) => {
+        const status = res.status()
+        if (status >= 500) {
+          const errorText = `HTTP ${status} Server Error: ${res.url()}`
+          pageErrors.push(errorText)
+          loggerService.error('crawler', `[${url}] ${errorText}`)
+        }
+      })
+
       // Navigate with timeout
       const response = await page.goto(url, {
         waitUntil: 'domcontentloaded',
@@ -260,6 +277,14 @@ export class CrawlerService {
 
       // Discover forms
       const forms = await this.discoverForms(page)
+      if (forms.length > 0) {
+        for (const form of forms) {
+          loggerService.info(
+            'crawler',
+            `[${url}] Найдена форма (${form.method}): ${form.fields.length} полей ввода`
+          )
+        }
+      }
 
       // Discover standalone inputs (not inside forms)
       const inputs = await this.discoverStandaloneInputs(page)
