@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import type { AppSettings } from '../types'
+import { electronService } from '../services/electronService'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -16,16 +17,21 @@ interface SettingsModalContentProps {
   onLog?: (message: string, level?: 'info' | 'warn' | 'error' | 'success', source?: string) => void
 }
 
+type KeyCheckStatus = 'idle' | 'checking' | 'active' | 'error'
+
 const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
   onClose,
   currentSettings,
-  onSave
+  onSave,
+  onLog
 }) => {
   const [apiKey, setApiKey] = useState(currentSettings?.geminiApiKey || '')
   const [geminiModel, setGeminiModel] = useState<AppSettings['geminiModel']>(
     currentSettings?.geminiModel || 'gemini-1.5-flash'
   )
   const [showApiKey, setShowApiKey] = useState(false)
+  const [keyStatus, setKeyStatus] = useState<KeyCheckStatus>('idle')
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null)
   const [showBrowser, setShowBrowser] = useState(!currentSettings?.playwrightHeadless)
   const [timeoutSec, setTimeoutSec] = useState(
     Math.round((currentSettings?.testTimeoutMs || 30000) / 1000)
@@ -44,6 +50,17 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isSaving, onClose])
+
+  const handleTestConnection = async (): Promise<void> => {
+    const trimmed = apiKey.trim()
+    if (!trimmed) {
+      setKeyStatus('error')
+      setStatusFeedback('Пожалуйста, укажите API-ключ перед проверкой.')
+      return
+    }
+
+    setKeyStatus('checking')
+    setStatusFeedback(null)
 
     try {
       const result = await electronService.testGeminiConnection(trimmed, geminiModel)
@@ -260,7 +277,31 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
                   )}
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => void handleTestConnection()}
+                disabled={isSaving || keyStatus === 'checking'}
+                className="px-3 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 active:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Проверить валидность API-ключа через тестовый запрос к Gemini API"
+              >
+                {keyStatus === 'checking' ? 'Проверка...' : 'Проверить ключ'}
+              </button>
             </div>
+
+            {statusFeedback && (
+              <div
+                className={`p-2.5 rounded-lg text-xs flex items-start gap-2 border animate-in fade-in duration-150 ${
+                  keyStatus === 'active'
+                    ? 'bg-emerald-950/50 border-emerald-600/40 text-emerald-300'
+                    : 'bg-rose-950/50 border-rose-600/40 text-rose-300'
+                }`}
+              >
+                <span className="font-bold flex-shrink-0 mt-0.5">
+                  {keyStatus === 'active' ? '✓' : '✗'}
+                </span>
+                <span className="leading-relaxed flex-1">{statusFeedback}</span>
+              </div>
+            )}
 
             <p className="text-[11px] text-slate-400 leading-relaxed">
               API-токен используется главным процессом для анализа архитектуры и формирования отчёта Gemini.
