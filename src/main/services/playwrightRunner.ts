@@ -47,7 +47,9 @@ export class PlaywrightRunner {
   /**
    * Creates a new managed BrowserContext with attached browser error monitoring.
    */
-  async createMonitoredContext(browser: { newContext: () => Promise<BrowserContext> }): Promise<BrowserContext> {
+  async createMonitoredContext(browser: {
+    newContext: () => Promise<BrowserContext>
+  }): Promise<BrowserContext> {
     const context = await browser.newContext()
     attachBrowserMonitor(context, 'playwright')
     return context

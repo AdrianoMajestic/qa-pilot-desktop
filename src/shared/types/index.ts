@@ -295,6 +295,19 @@ export interface BrowserError {
   details?: Record<string, unknown>
 }
 
+/** Browser error payload captured by the interceptor, used for AI stack trace analysis. */
+export type CapturedBrowserError = BrowserError
+
+export interface StackTraceAnalysisResult {
+  errorId: string
+  rootCause: string
+  affectedModule?: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  stepsToFix: string[]
+  codeFixSnippet?: string
+  timestamp: number
+}
+
 // ==========================================
 // 9. IPC Channels Protocol
 // ==========================================
@@ -317,6 +330,7 @@ export const IPC_CHANNELS = {
   AI_TEST_CONNECTION: 'ai:test-connection',
   AI_ANALYZE_ARCHITECTURE: 'ai:analyze-architecture',
   AI_GENERATE_FINAL_REPORT: 'ai:generate-final-report',
+  AI_ANALYZE_STACK_TRACE: 'ai:analyze-stack-trace',
   BROWSER_ERRORS_GET: 'browser:get-errors',
   BROWSER_ERRORS_CLEAR: 'browser:clear-errors'
 } as const
@@ -345,6 +359,10 @@ export interface CustomAPI {
   testGeminiConnection: (apiKey?: string) => Promise<GeminiConnectionTestResult>
   analyzeArchitecture: (context: ProjectContext) => Promise<ArchitectureAnalysisResult>
   generateFinalReport: (data: QASessionData) => Promise<FinalQAReport>
+  analyzeStackTrace: (
+    error: CapturedBrowserError,
+    context?: ProjectContext
+  ) => Promise<StackTraceAnalysisResult>
   getBrowserErrors: (filter?: {
     source?: 'playwright' | 'crawler'
     type?: BrowserErrorType
