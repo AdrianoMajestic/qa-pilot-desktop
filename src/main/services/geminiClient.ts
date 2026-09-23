@@ -6,7 +6,7 @@ import type { GeminiConnectionTestResult } from '@shared/types'
 /**
  * Default Gemini model used for automated analysis and connection testing.
  */
-export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash'
+export const GEMINI_DEFAULT_MODEL = 'gemini-1.5-flash'
 
 /**
  * Retrieves the currently active Gemini API key.

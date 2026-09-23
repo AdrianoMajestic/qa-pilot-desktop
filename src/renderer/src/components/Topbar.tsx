@@ -1,9 +1,6 @@
 import React from 'react'
-import type { SystemStatus } from '../types'
 
 interface TopbarProps {
-  status: SystemStatus
-  loading: boolean
   projectName?: string | null
   projectPath?: string | null
   isScanning?: boolean
@@ -12,8 +9,6 @@ interface TopbarProps {
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
-  status,
-  loading,
   projectName,
   projectPath,
   isScanning = false,
@@ -41,9 +36,6 @@ export const Topbar: React.FC<TopbarProps> = ({
         </div>
         <div className="flex items-baseline gap-2">
           <h1 className="text-sm font-semibold text-slate-100 tracking-wide">QA Pilot Desktop</h1>
-          <span className="text-[11px] font-medium text-slate-400 bg-slate-800/70 px-1.5 py-0.5 rounded">
-            v1.0.0
-          </span>
         </div>
 
         {/* Selected Project Badge */}
@@ -70,29 +62,8 @@ export const Topbar: React.FC<TopbarProps> = ({
         )}
       </div>
 
-      {/* Center Search / Command palette hint */}
-      <div className="hidden md:flex items-center bg-slate-950/60 border border-slate-800 rounded-md px-2.5 py-1 text-xs text-slate-400 gap-2 w-64 shadow-inner">
-        <svg
-          className="w-3.5 h-3.5 text-slate-500"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
-        <span className="flex-1 text-slate-400">Поиск тестов и сценариев...</span>
-        <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-slate-800 text-slate-400 rounded border border-slate-700">
-          Ctrl+K
-        </kbd>
-      </div>
-
-      {/* Actions & Status Badge */}
-      <div className="flex items-center gap-3">
+      {/* Actions */}
+      <div className="flex items-center gap-2.5">
         {/* Open Project Button */}
         <button
           onClick={onSelectProject}
@@ -143,7 +114,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         <button
           onClick={onOpenSettings}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 active:bg-slate-700 text-slate-200 hover:text-white text-xs font-medium transition-all border border-slate-700/80 cursor-pointer shadow-sm hover:border-slate-600"
-          title="Настройки приложения (Gemini API Key, Playwright)"
+          title="Настройки приложения"
         >
           <svg
             className="w-3.5 h-3.5 text-slate-400"
@@ -164,34 +135,8 @@ export const Topbar: React.FC<TopbarProps> = ({
               d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <span className="hidden sm:inline">Настройки</span>
+          <span>Настройки</span>
         </button>
-
-        {loading ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>Подключение IPC...</span>
-          </div>
-        ) : status.ready ? (
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-medium shadow-sm shadow-emerald-950">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span>Система готова</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-950/60 border border-rose-500/30 text-rose-400 text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
-            <span>{status.message || 'Система офлайн'}</span>
-          </div>
-        )}
-
-        {status.electronVersion && (
-          <span className="hidden sm:inline-block text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 font-mono">
-            Electron {status.electronVersion}
-          </span>
-        )}
       </div>
     </header>
   )

@@ -263,6 +263,10 @@ class ElectronService {
     }
   }
 
+  async generateQAReport(sessionData: QASessionData): Promise<FinalQAReport> {
+    return this.generateFinalReport(sessionData)
+  }
+
   private mockBrowserErrors: BrowserError[] = [
     {
       id: 'mock-err-1',

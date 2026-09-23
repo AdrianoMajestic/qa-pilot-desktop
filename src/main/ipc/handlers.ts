@@ -335,6 +335,13 @@ export function registerIpcHandlers(): void {
     }
   )
 
+  ipcMain.handle(
+    IPC_CHANNELS.AI_GENERATE_QA_REPORT,
+    async (_event, sessionData: QASessionData): Promise<FinalQAReport> => {
+      return generateFinalQAReport(sessionData)
+    }
+  )
+
   // Browser Error Interceptor Handlers
   ipcMain.handle(
     IPC_CHANNELS.BROWSER_ERRORS_GET,

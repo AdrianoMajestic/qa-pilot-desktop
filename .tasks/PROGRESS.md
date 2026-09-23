@@ -130,6 +130,23 @@
 
 ## Журнал изменений (Changelog)
 
+- **23.09.2026 (Исправление 404 в Gemini API и рефакторинг UI к функциональному 3-карточному дашборду)**:
+  - **Устранение бага Gemini API 404 (NOT_FOUND)**:
+    - В `src/main/services/geminiClient.ts`: константа `GEMINI_DEFAULT_MODEL` исправлена с невалидной `'gemini-2.5-flash'` на действующую модель `'gemini-1.5-flash'`.
+    - Подтверждено автоматическое наследование `'gemini-1.5-flash'` в сервисах `architectureAnalyzer.ts` и `reportGenerator.ts`.
+  - **Полная зачистка статических мок-виджетов и фиктивных метрик**:
+    - В `src/renderer/src/components/Dashboard.tsx` удалены: хардкодные карточки "28 тест-кейсов" / "96.4% успешно", фиктивный массив сьютов `initialSuites` (8+14+6=28), мок-пресеты и графики.
+    - В `src/renderer/src/components/DashboardOverview.tsx` удалены мок-пресеты (`optimal`, `warning`, `critical`), кнопки переключения срезов (`86% Оптимально`, `68% Внимание`, `42% Критично`) и фейковые дефолтные структуры.
+    - В `src/renderer/src/components/SettingsModal.tsx` удалена лишняя тестовая кнопка и перегруженная логика тестирования ключа в пользу быстрого прямого сохранения в настройки.
+  - **Реализация компактного и функционального 3-карточного дашборда (`Dashboard.tsx`)**:
+    - **Карточка 1 (📁 Контекст проекта)**: текущий путь, кнопка «Сформировать контекст ИИ» (`project:parse-context`), бейджи количества ключевых файлов, расчетных токенов и стека.
+    - **Карточка 2 (🌐 Авто-краулер Playwright)**: ввод Target URL, запуск и остановка краулера (`crawler:start` / `crawler:stop`), реальный бейдж числа перехваченных ошибок браузера и сводка страниц/форм.
+    - **Карточка 3 (🤖 ИИ-Отчет Gemini)**: индикатор наличия API-ключа, кнопка «Сформировать QA-отчёт» (`ai:generate-qa-report`), текстовый контейнер с форматированным отчётом Gemini AI и кнопкой копирования.
+  - **IPC и типизация**:
+    - В `@shared/types` и `handlers.ts` зарегистрирован алиас канала `AI_GENERATE_QA_REPORT: 'ai:generate-qa-report'`, в `FinalQAReport` добавлено поле `analysisMarkdown`.
+    - В `reportGenerator.ts` добавлена генерация структурированного markdown-отчёта `formatReportMarkdown`.
+  - **Верификация**: `pnpm typecheck` (код 0), `pnpm lint` (0 ошибок).
+
 - **22.09.2026 (Overall QA Score Aggregator — [AI INTEGRATION] ✅ итоговый отчёт)**:
   - Создан `src/main/services/reportGenerator.ts`: weighted score (архитектура 30%, Playwright 30%, рантайм 20%, краулер 20%), `QualityRadarMetrics`, Gemini `executiveSummary` с JSON schema и локальным fallback.
   - В `@shared/types`: `QASessionData`, `PlaywrightSessionStats`, `QualityRadarMetrics`, `FinalQAReport`, `IPC_CHANNELS.AI_GENERATE_FINAL_REPORT`, `generateFinalReport` в `CustomAPI`.

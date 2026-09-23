@@ -10,8 +10,7 @@ import { electronService } from './services/electronService'
 import type { FileNode, ProjectStats, AppSettings } from './types'
 
 export default function App(): React.JSX.Element {
-  const { status, loading } = useSystemStatus()
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const { status } = useSystemStatus()
 
   // Real-Time Log Stream Hook
   const { logs, addLog, clearLogs, triggerTestLog } = useLogStream()
@@ -106,10 +105,8 @@ export default function App(): React.JSX.Element {
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none antialiased">
-      {/* Topbar: Название, Статус и Кнопка проекта */}
+      {/* Topbar: Название и Кнопка проекта */}
       <Topbar
-        status={status}
-        loading={loading}
         projectName={projectName}
         projectPath={projectPath}
         isScanning={isScanning}
@@ -121,13 +118,9 @@ export default function App(): React.JSX.Element {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Боковая панель со структурой файлов */}
         <Sidebar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
           fileTree={fileTree}
           projectName={projectName}
           projectPath={projectPath}
-          isScanning={isScanning}
-          onSelectProject={handleSelectProject}
           onFileClick={handleFileClick}
         />
 
@@ -141,6 +134,7 @@ export default function App(): React.JSX.Element {
             isScanning={isScanning}
             onSelectProject={handleSelectProject}
             onTriggerLog={addLog}
+            settings={settings}
           />
 
           <ConsoleLogs
