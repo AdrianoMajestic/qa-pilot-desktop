@@ -337,6 +337,70 @@ async function generateExecutiveSummary(
   }
 }
 
+function formatReportMarkdown(
+  sessionData: QASessionData,
+  overallScore: number,
+  criticalIssuesCount: number,
+  executiveSummary: string[]
+): string {
+  const dateStr = new Date().toLocaleString('ru-RU')
+  const projectName = sessionData.projectName || 'Текущий проект'
+  const arch = sessionData.architecture
+  const crawl = sessionData.crawler
+  const errors = sessionData.browserErrors || []
+
+  const sections: string[] = []
+
+  sections.push(`# Отчёт QA-аудита: ${projectName}`)
+  sections.push(`*Дата генерации:* ${dateStr}\n`)
+  sections.push(`## 📊 Сводные показатели качества`)
+  sections.push(`- **Совокупный скоринг надежности:** ${overallScore}/100`)
+  sections.push(`- **Количество критических сигналов:** ${criticalIssuesCount}`)
+  sections.push(`- **Зафиксировано сбоев браузера/сети:** ${errors.length}`)
+
+  sections.push(`\n## 🤖 Выводы и рекомендации Gemini AI (Executive Summary)`)
+  if (executiveSummary.length > 0) {
+    for (const item of executiveSummary) {
+      sections.push(`- ${item}`)
+    }
+  } else {
+    sections.push('- Критических замечаний не выявлено.')
+  }
+
+  if (arch) {
+    sections.push(`\n## 🏗 Архитектурный анализ исходного кода`)
+    sections.push(`- **Оценка здоровья архитектуры:** ${arch.healthScore}/100`)
+    if (arch.untestedAreas && arch.untestedAreas.length > 0) {
+      sections.push(`\n### Непокрытые тестами модули:`)
+      for (const area of arch.untestedAreas) {
+        sections.push(`- \`${area.path}\` [${area.riskLevel.toUpperCase()}]: ${area.reason}`)
+      }
+    }
+    if (arch.vulnerabilities && arch.vulnerabilities.length > 0) {
+      sections.push(`\n### Потенциальные риски и уязвимости:`)
+      for (const v of arch.vulnerabilities) {
+        sections.push(`- ⚠️ ${v}`)
+      }
+    }
+    if (arch.recommendations && arch.recommendations.length > 0) {
+      sections.push(`\n### Рекомендации QA-инженера:`)
+      for (const rec of arch.recommendations) {
+        sections.push(`- 💡 ${rec}`)
+      }
+    }
+  }
+
+  if (crawl) {
+    sections.push(`\n## 🌐 Результаты автоматического обхода Playwright`)
+    sections.push(`- **Целевой URL:** ${crawl.startUrl}`)
+    sections.push(`- **Посещено страниц:** ${crawl.pagesVisited}`)
+    sections.push(`- **Обнаружено форм / полей ввода:** ${crawl.totalForms} / ${crawl.totalInputs}`)
+    sections.push(`- **Ошибок в ходе обхода:** ${crawl.errors.length}`)
+  }
+
+  return sections.join('\n')
+}
+
 /**
  * Aggregates session signals into weighted Overall QA Score, radar metrics, and Gemini executive summary.
  */
@@ -357,12 +421,20 @@ export async function generateFinalQAReport(sessionData: QASessionData): Promise
     criticalIssuesCount
   )
 
+  const analysisMarkdown = formatReportMarkdown(
+    sessionData,
+    overallScore,
+    criticalIssuesCount,
+    executiveSummary
+  )
+
   const report: FinalQAReport = {
     overallScore,
     radarMetrics,
     executiveSummary,
     criticalIssuesCount,
-    generatedAt: Date.now()
+    generatedAt: Date.now(),
+    analysisMarkdown
   }
 
   loggerService.success(
@@ -372,3 +444,4 @@ export async function generateFinalQAReport(sessionData: QASessionData): Promise
 
   return report
 }
+
