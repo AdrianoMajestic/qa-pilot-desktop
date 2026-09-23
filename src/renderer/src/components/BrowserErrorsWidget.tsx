@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import type { BrowserError, BrowserErrorType } from '@shared/types'
+import type { BrowserError, BrowserErrorType, StackTraceAnalysisResult } from '@shared/types'
 import { electronService } from '../services/electronService'
 
 interface BrowserErrorsWidgetProps {
+  projectPath?: string | null
   onTriggerLog?: (msg: string, level?: 'info' | 'warn' | 'error' | 'success') => void
 }
 
-export const BrowserErrorsWidget: React.FC<BrowserErrorsWidgetProps> = ({ onTriggerLog }) => {
+export const BrowserErrorsWidget: React.FC<BrowserErrorsWidgetProps> = ({
+  projectPath,
+  onTriggerLog
+}) => {
   const [errors, setErrors] = useState<BrowserError[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedSource, setSelectedSource] = useState<'all' | 'playwright' | 'crawler'>('all')
@@ -14,6 +18,9 @@ export const BrowserErrorsWidget: React.FC<BrowserErrorsWidgetProps> = ({ onTrig
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null)
+  const [analyses, setAnalyses] = useState<Record<string, StackTraceAnalysisResult>>({})
+  const [analysisErrors, setAnalysisErrors] = useState<Record<string, string>>({})
 
   const fetchErrors = useCallback(async () => {
     setLoading(true)
@@ -72,6 +79,52 @@ export const BrowserErrorsWidget: React.FC<BrowserErrorsWidgetProps> = ({ onTrig
     navigator.clipboard.writeText(text)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const handleAnalyzeWithAi = async (item: BrowserError): Promise<void> => {
+    setAnalyzingId(item.id)
+    setExpandedId(item.id)
+    setAnalysisErrors((prev) => {
+      const next = { ...prev }
+      delete next[item.id]
+      return next
+    })
+    onTriggerLog?.(`AI-анализ стек-трейса [${item.id}]...`, 'info')
+
+    try {
+      let projectContext
+      if (projectPath) {
+        projectContext = await electronService.parseProjectContext(projectPath)
+      }
+      const result = await electronService.analyzeStackTrace(item, projectContext)
+      setAnalyses((prev) => ({ ...prev, [item.id]: result }))
+      onTriggerLog?.(
+        `AI-анализ завершён: severity=${result.severity}, модуль=${result.affectedModule ?? '—'}`,
+        result.severity === 'critical' || result.severity === 'high' ? 'warn' : 'success'
+      )
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Неизвестная ошибка AI-анализа'
+      setAnalysisErrors((prev) => ({ ...prev, [item.id]: msg }))
+      onTriggerLog?.(`Ошибка AI-анализа: ${msg}`, 'error')
+    } finally {
+      setAnalyzingId(null)
+    }
+  }
+
+  const getSeverityBadge = (severity: StackTraceAnalysisResult['severity']): React.JSX.Element => {
+    const styles: Record<StackTraceAnalysisResult['severity'], string> = {
+      critical: 'bg-rose-950/70 text-rose-300 border-rose-800/60',
+      high: 'bg-orange-950/70 text-orange-300 border-orange-800/60',
+      medium: 'bg-amber-950/70 text-amber-300 border-amber-800/60',
+      low: 'bg-slate-800 text-slate-300 border-slate-700'
+    }
+    return (
+      <span
+        className={`inline-flex text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border ${styles[severity]}`}
+      >
+        {severity.toUpperCase()}
+      </span>
+    )
   }
 
   const getTypeBadge = (type: BrowserErrorType, statusCode?: number): React.JSX.Element => {
@@ -350,8 +403,38 @@ export const BrowserErrorsWidget: React.FC<BrowserErrorsWidgetProps> = ({ onTrig
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {(item.stackTrace || item.details) && (
+                    <button
+                      type="button"
+                      onClick={() => void handleAnalyzeWithAi(item)}
+                      disabled={analyzingId === item.id}
+                      className="px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-950/70 hover:bg-indigo-900/70 text-indigo-300 hover:text-indigo-100 border border-indigo-800/60 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      {analyzingId === item.id ? (
+                        <>
+                          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                            />
+                          </svg>
+                          Анализ...
+                        </>
+                      ) : (
+                        <>✦ Analyze with AI</>
+                      )}
+                    </button>
+                    {(item.stackTrace || item.details || analyses[item.id]) && (
                       <button
+                        type="button"
                         onClick={() => setExpandedId(isExpanded ? null : item.id)}
                         className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
                       >
@@ -409,6 +492,47 @@ export const BrowserErrorsWidget: React.FC<BrowserErrorsWidgetProps> = ({ onTrig
                         <pre className="p-2.5 rounded-lg bg-slate-950 font-mono text-[11px] text-indigo-300/90 border border-slate-800 overflow-x-auto whitespace-pre leading-relaxed select-text">
                           {JSON.stringify(item.details, null, 2)}
                         </pre>
+                      </div>
+                    )}
+
+                    {analysisErrors[item.id] && (
+                      <div className="p-2.5 rounded-lg bg-rose-950/30 border border-rose-800/50 text-[11px] text-rose-300">
+                        AI-анализ недоступен: {analysisErrors[item.id]}
+                      </div>
+                    )}
+
+                    {analyses[item.id] && (
+                      <div className="space-y-2 p-3 rounded-lg bg-indigo-950/20 border border-indigo-800/40">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-semibold text-indigo-300">
+                            AI Fix Generator
+                          </span>
+                          {getSeverityBadge(analyses[item.id].severity)}
+                          {analyses[item.id].affectedModule && (
+                            <span className="text-[10px] font-mono text-slate-400 truncate max-w-full">
+                              {analyses[item.id].affectedModule}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-200 leading-relaxed">
+                          <span className="text-slate-400 font-medium">Root cause: </span>
+                          {analyses[item.id].rootCause}
+                        </p>
+                        <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-300">
+                          {analyses[item.id].stepsToFix.map((step, idx) => (
+                            <li key={`${item.id}-step-${idx}`}>{step}</li>
+                          ))}
+                        </ol>
+                        {analyses[item.id].codeFixSnippet && (
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold text-slate-400">
+                              Предлагаемое исправление:
+                            </span>
+                            <pre className="p-2.5 rounded-lg bg-slate-950 font-mono text-[11px] text-emerald-300/90 border border-slate-800 overflow-x-auto whitespace-pre leading-relaxed select-text">
+                              {analyses[item.id].codeFixSnippet}
+                            </pre>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

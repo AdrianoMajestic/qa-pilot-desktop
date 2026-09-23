@@ -17,6 +17,8 @@ import {
   type ArchitectureAnalysisResult,
   type QASessionData,
   type FinalQAReport,
+  type CapturedBrowserError,
+  type StackTraceAnalysisResult,
   type BrowserError,
   type BrowserErrorType,
   type CustomAPI
@@ -63,6 +65,11 @@ export const api: CustomAPI = {
     ipcRenderer.invoke(IPC_CHANNELS.AI_ANALYZE_ARCHITECTURE, context),
   generateFinalReport: (data: QASessionData): Promise<FinalQAReport> =>
     ipcRenderer.invoke(IPC_CHANNELS.AI_GENERATE_FINAL_REPORT, data),
+  analyzeStackTrace: (
+    error: CapturedBrowserError,
+    context?: ProjectContext
+  ): Promise<StackTraceAnalysisResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_ANALYZE_STACK_TRACE, error, context),
   getBrowserErrors: (filter?: {
     source?: 'playwright' | 'crawler'
     type?: BrowserErrorType
