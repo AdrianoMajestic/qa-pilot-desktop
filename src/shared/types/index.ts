@@ -228,6 +228,7 @@ export interface FinalQAReport {
   executiveSummary: string[]
   criticalIssuesCount: number
   generatedAt: number
+  analysisMarkdown?: string
 }
 
 // ==========================================
@@ -343,7 +344,7 @@ export const IPC_CHANNELS = {
   AI_TEST_CONNECTION: 'ai:test-connection',
   AI_ANALYZE_ARCHITECTURE: 'ai:analyze-architecture',
   AI_GENERATE_FINAL_REPORT: 'ai:generate-final-report',
-  AI_ANALYZE_STACK_TRACE: 'ai:analyze-stack-trace',
+  AI_GENERATE_QA_REPORT: 'ai:generate-qa-report',
   BROWSER_ERRORS_GET: 'browser:get-errors',
   BROWSER_ERRORS_CLEAR: 'browser:clear-errors'
 } as const

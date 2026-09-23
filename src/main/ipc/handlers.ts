@@ -339,13 +339,9 @@ export function registerIpcHandlers(): void {
   )
 
   ipcMain.handle(
-    IPC_CHANNELS.AI_ANALYZE_STACK_TRACE,
-    async (
-      _event,
-      error: CapturedBrowserError,
-      context?: ProjectContext
-    ): Promise<StackTraceAnalysisResult> => {
-      return analyzeStackTrace(error, context)
+    IPC_CHANNELS.AI_GENERATE_QA_REPORT,
+    async (_event, sessionData: QASessionData): Promise<FinalQAReport> => {
+      return generateFinalQAReport(sessionData)
     }
   )
 

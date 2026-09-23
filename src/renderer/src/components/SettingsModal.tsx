@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import type { AppSettings } from '../types'
-import { electronService } from '../services/electronService'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -17,25 +16,17 @@ interface SettingsModalContentProps {
   onLog?: (message: string, level?: 'info' | 'warn' | 'error' | 'success', source?: string) => void
 }
 
-type KeyCheckStatus = 'idle' | 'checking' | 'active' | 'error'
-
 const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
   onClose,
   currentSettings,
-  onSave,
-  onLog
+  onSave
 }) => {
   const [apiKey, setApiKey] = useState(currentSettings?.geminiApiKey || '')
   const [geminiModel, setGeminiModel] = useState<AppSettings['geminiModel']>(
     currentSettings?.geminiModel || 'gemini-1.5-flash'
   )
   const [showApiKey, setShowApiKey] = useState(false)
-  const [keyStatus, setKeyStatus] = useState<KeyCheckStatus>('idle')
-  const [statusFeedback, setStatusFeedback] = useState<string | null>(null)
-
-  // showBrowser = true corresponds to playwrightHeadless = false (headed mode)
   const [showBrowser, setShowBrowser] = useState(!currentSettings?.playwrightHeadless)
-  // Timeout in seconds for user-friendly UI input
   const [timeoutSec, setTimeoutSec] = useState(
     Math.round((currentSettings?.testTimeoutMs || 30000) / 1000)
   )
@@ -46,24 +37,13 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
   // Handle ESC key press to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape' && !isSaving && keyStatus !== 'checking') {
+      if (e.key === 'Escape' && !isSaving) {
         onClose()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isSaving, keyStatus, onClose])
-
-  const handleTestKey = async (): Promise<void> => {
-    const trimmed = apiKey.trim()
-    if (!trimmed) {
-      setKeyStatus('error')
-      setStatusFeedback('Пожалуйста, укажите API-ключ перед проверкой.')
-      return
-    }
-
-    setKeyStatus('checking')
-    setStatusFeedback(null)
+  }, [isSaving, onClose])
 
     try {
       const result = await electronService.testGeminiConnection(trimmed, geminiModel)
@@ -126,7 +106,7 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm select-none transition-all duration-200"
       onClick={(e) => {
-        if (e.target === e.currentTarget && !isSaving && keyStatus !== 'checking') onClose()
+        if (e.target === e.currentTarget && !isSaving) onClose()
       }}
     >
       <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl shadow-2xl shadow-black/60 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
@@ -159,7 +139,7 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
 
           <button
             onClick={onClose}
-            disabled={isSaving || keyStatus === 'checking'}
+            disabled={isSaving}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
             title="Закрыть (Esc)"
           >
@@ -222,54 +202,17 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
                 Google Gemini API Key
               </label>
 
-              {/* Dynamic Status Badges */}
-              {keyStatus === 'checking' && (
-                <span className="inline-flex items-center gap-1.5 text-[10px] text-indigo-400 font-mono bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-700/50 animate-pulse">
-                  <svg className="w-2.5 h-2.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Проверка...
-                </span>
-              )}
-
-              {keyStatus === 'active' && (
+              {apiKey.trim() ? (
                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-mono bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-700/50">
                   <span className="text-emerald-400 font-bold">✓</span>
-                  Ключ активен
+                  Задан
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 font-mono bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-800/40">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  Не задан
                 </span>
               )}
-
-              {keyStatus === 'error' && (
-                <span className="inline-flex items-center gap-1 text-[10px] text-rose-400 font-mono bg-rose-950/60 px-2 py-0.5 rounded border border-rose-700/50">
-                  <span className="text-rose-400 font-bold">✗</span>
-                  Ошибка API ключа
-                </span>
-              )}
-
-              {keyStatus === 'idle' &&
-                (apiKey ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 font-mono bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/40">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    Не проверен
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 font-mono bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-800/40">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                    Не задан
-                  </span>
-                ))}
             </div>
 
             <div className="flex items-center gap-2">
@@ -278,11 +221,7 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
                   id="gemini-key"
                   type={showApiKey ? 'text' : 'password'}
                   value={apiKey}
-                  onChange={(e) => {
-                    setApiKey(e.target.value)
-                    setKeyStatus('idle')
-                    setStatusFeedback(null)
-                  }}
+                  onChange={(e) => setApiKey(e.target.value)}
                   placeholder="AIzaSy..."
                   autoComplete="off"
                   spellCheck={false}
@@ -321,74 +260,10 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
                   )}
                 </button>
               </div>
-
-              {/* Test Key Button */}
-              <button
-                type="button"
-                onClick={handleTestKey}
-                disabled={keyStatus === 'checking' || !apiKey.trim()}
-                className="px-3 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 active:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Проверить валидность API-ключа через тестовый запрос к Gemini API"
-              >
-                {keyStatus === 'checking' ? (
-                  <>
-                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    <span>Проверка...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span>Проверить ключ</span>
-                  </>
-                )}
-              </button>
             </div>
 
-            {/* Test Connection Feedback Message */}
-            {statusFeedback && (
-              <div
-                className={`p-2.5 rounded-lg text-xs flex items-start gap-2 border animate-in fade-in duration-150 ${
-                  keyStatus === 'active'
-                    ? 'bg-emerald-950/50 border-emerald-600/40 text-emerald-300'
-                    : 'bg-rose-950/50 border-rose-600/40 text-rose-300'
-                }`}
-              >
-                <span className="font-bold flex-shrink-0 mt-0.5">
-                  {keyStatus === 'active' ? '✓' : '✗'}
-                </span>
-                <span className="leading-relaxed flex-1">{statusFeedback}</span>
-              </div>
-            )}
-
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              API-токен используется главным процессом для селективного анализа структуры проекта,
-              выявления уязвимостей и формирования рекомендаций по автотестам.
+              API-токен используется главным процессом для анализа архитектуры и формирования отчёта Gemini.
             </p>
           </div>
 
@@ -489,14 +364,14 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
             <button
               type="button"
               onClick={onClose}
-              disabled={isSaving || keyStatus === 'checking'}
+              disabled={isSaving}
               className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-750 active:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-colors cursor-pointer border border-slate-700 disabled:opacity-50"
             >
               Отмена
             </button>
             <button
               type="submit"
-              disabled={isSaving || keyStatus === 'checking'}
+              disabled={isSaving}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-medium transition-all shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? (
