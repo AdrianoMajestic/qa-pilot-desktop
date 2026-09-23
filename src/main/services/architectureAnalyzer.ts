@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai'
 import type { ArchitectureAnalysisResult, ProjectContext, UntestedArea } from '@shared/types'
-import { GEMINI_DEFAULT_MODEL, getApiKey, parseGeminiError } from './geminiClient'
+import { getApiKey, parseGeminiError } from './geminiClient'
+import { getSettings } from './settingsStore'
 import { loggerService } from './loggerService'
 
 const SYSTEM_INSTRUCTION = `You are a senior QA architect and application security reviewer.
@@ -253,7 +254,10 @@ export function parseArchitectureResponse(
 export async function analyzeArchitecture(
   context: ProjectContext
 ): Promise<ArchitectureAnalysisResult> {
-  const activeKey = getApiKey()
+  const settings = getSettings()
+  const activeKey = settings.geminiApiKey?.trim() || getApiKey()
+  const model = settings.geminiModel || 'gemini-1.5-flash'
+
   if (!activeKey) {
     const msg = 'API-ключ Gemini не задан. Укажите ключ в настройках приложения.'
     loggerService.warn('ai', msg)
@@ -262,7 +266,7 @@ export async function analyzeArchitecture(
 
   loggerService.info(
     'ai',
-    `Запуск AI-анализа архитектуры проекта «${context.projectName}» (модель: ${GEMINI_DEFAULT_MODEL})...`
+    `Запуск AI-анализа архитектуры проекта «${context.projectName}» (модель: ${model})...`
   )
 
   const userPrompt = buildArchitecturePrompt(context)
@@ -271,7 +275,7 @@ export async function analyzeArchitecture(
     const client = new GoogleGenAI({ apiKey: activeKey })
 
     const response = await client.models.generateContent({
-      model: GEMINI_DEFAULT_MODEL,
+      model: settings.geminiModel || 'gemini-1.5-flash',
       contents: userPrompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -315,7 +319,7 @@ export async function analyzeArchitecture(
     if (error instanceof Error && error.message.includes('API-ключ Gemini')) {
       throw error
     }
-    const parsedError = parseGeminiError(error)
+    const parsedError = parseGeminiError(error, model)
     loggerService.error('ai', `Ошибка AI-анализа архитектуры: ${parsedError}`)
     throw new Error(`Сбой AI-анализа архитектуры: ${parsedError}`)
   }

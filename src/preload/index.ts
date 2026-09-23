@@ -59,8 +59,8 @@ export const api: CustomAPI = {
   startCrawler: (options: CrawlerOptions): Promise<CrawlResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_START, options),
   stopCrawler: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.CRAWLER_STOP),
-  testGeminiConnection: (apiKey?: string): Promise<GeminiConnectionTestResult> =>
-    ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, apiKey),
+  testGeminiConnection: (apiKey?: string, model?: string): Promise<GeminiConnectionTestResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, apiKey, model),
   analyzeArchitecture: (context: ProjectContext): Promise<ArchitectureAnalysisResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.AI_ANALYZE_ARCHITECTURE, context),
   generateFinalReport: (data: QASessionData): Promise<FinalQAReport> =>

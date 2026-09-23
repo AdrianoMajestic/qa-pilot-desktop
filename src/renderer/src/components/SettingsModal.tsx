@@ -26,6 +26,9 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
   onLog
 }) => {
   const [apiKey, setApiKey] = useState(currentSettings?.geminiApiKey || '')
+  const [geminiModel, setGeminiModel] = useState<AppSettings['geminiModel']>(
+    currentSettings?.geminiModel || 'gemini-1.5-flash'
+  )
   const [showApiKey, setShowApiKey] = useState(false)
   const [keyStatus, setKeyStatus] = useState<KeyCheckStatus>('idle')
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null)
@@ -63,7 +66,7 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
     setStatusFeedback(null)
 
     try {
-      const result = await electronService.testGeminiConnection(trimmed)
+      const result = await electronService.testGeminiConnection(trimmed, geminiModel)
       if (result.success) {
         setKeyStatus('active')
         setStatusFeedback(result.message)
@@ -100,6 +103,7 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
     try {
       await onSave({
         geminiApiKey: apiKey.trim(),
+        geminiModel,
         playwrightHeadless: !showBrowser,
         testTimeoutMs: timeoutSec * 1000
       })
@@ -390,6 +394,35 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
 
           <div className="h-px bg-slate-800" />
 
+          {/* Gemini Model Selection */}
+          <div className="space-y-1.5">
+            <label htmlFor="gemini-model" className="text-xs font-semibold text-slate-200 block">
+              Модель Google Gemini
+            </label>
+            <div className="relative">
+              <select
+                id="gemini-model"
+                value={geminiModel}
+                onChange={(e) => setGeminiModel(e.target.value as AppSettings['geminiModel'])}
+                className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer"
+              >
+                <option value="gemini-1.5-flash">gemini-1.5-flash (Быстрая модель)</option>
+                <option value="gemini-1.5-pro">gemini-1.5-pro (Глубокий анализ кода)</option>
+                <option value="gemini-2.0-flash">gemini-2.0-flash (Flash 2.0)</option>
+                <option value="gemini-3.6-flash">
+                  gemini-3.6-flash (Новейшая стабильная модель Google Gemini)
+                </option>
+                <option value="gemini-3.8-flash">gemini-3.8-flash (Gemini 3.8 Flash)</option>
+              </select>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Используется сервисами архитектурного анализа, стектрейс-диагностики и генератора
+              отчётов.
+            </p>
+          </div>
+
+          <div className="h-px bg-slate-800" />
+
           {/* Playwright Headless / Headed Toggle Section */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -522,7 +555,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <SettingsModalContent
-      key={currentSettings?.geminiApiKey ?? 'initial'}
+      key={`${currentSettings?.geminiApiKey ?? 'initial'}-${currentSettings?.geminiModel ?? 'default'}`}
       onClose={onClose}
       currentSettings={currentSettings}
       onSave={onSave}

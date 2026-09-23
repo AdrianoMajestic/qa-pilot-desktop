@@ -160,8 +160,21 @@ export interface TriggerTestLogParams {
 // 6. Application Settings & Preferences
 // ==========================================
 
+export type GeminiModel =
+  | 'gemini-1.5-flash'
+  | 'gemini-1.5-pro'
+  | 'gemini-2.0-flash'
+  | 'gemini-3.6-flash'
+  | 'gemini-3.8-flash'
+
 export interface AppSettings {
   geminiApiKey: string
+  geminiModel:
+    | 'gemini-1.5-flash'
+    | 'gemini-1.5-pro'
+    | 'gemini-2.0-flash'
+    | 'gemini-3.6-flash'
+    | 'gemini-3.8-flash'
   playwrightHeadless: boolean
   testTimeoutMs: number
 }
@@ -356,7 +369,7 @@ export interface CustomAPI {
   saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>
   startCrawler: (options: CrawlerOptions) => Promise<CrawlResult>
   stopCrawler: () => Promise<void>
-  testGeminiConnection: (apiKey?: string) => Promise<GeminiConnectionTestResult>
+  testGeminiConnection: (apiKey?: string, model?: string) => Promise<GeminiConnectionTestResult>
   analyzeArchitecture: (context: ProjectContext) => Promise<ArchitectureAnalysisResult>
   generateFinalReport: (data: QASessionData) => Promise<FinalQAReport>
   analyzeStackTrace: (

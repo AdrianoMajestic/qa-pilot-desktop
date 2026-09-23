@@ -167,6 +167,7 @@ class ElectronService {
     }
     return {
       geminiApiKey: '',
+      geminiModel: 'gemini-1.5-flash',
       playwrightHeadless: false,
       testTimeoutMs: 30000
     }
@@ -178,6 +179,7 @@ class ElectronService {
     }
     return {
       geminiApiKey: settings.geminiApiKey ?? '',
+      geminiModel: settings.geminiModel ?? 'gemini-1.5-flash',
       playwrightHeadless: settings.playwrightHeadless ?? false,
       testTimeoutMs: settings.testTimeoutMs ?? 30000
     }
@@ -216,9 +218,9 @@ class ElectronService {
   /**
    * Tests connection to Google Gemini API using the provided or saved API key.
    */
-  async testGeminiConnection(apiKey?: string): Promise<GeminiConnectionTestResult> {
+  async testGeminiConnection(apiKey?: string, model?: string): Promise<GeminiConnectionTestResult> {
     if (this.isElectronAvailable() && typeof window.api.testGeminiConnection === 'function') {
-      return await window.api.testGeminiConnection(apiKey)
+      return await window.api.testGeminiConnection(apiKey, model)
     }
     return {
       success: false,

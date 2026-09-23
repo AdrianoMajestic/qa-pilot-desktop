@@ -4,7 +4,7 @@ import type {
   TestSuiteSummary,
   ProjectStats,
   FinalQAReport,
-  QASessionData
+  QASessionData,
   ProjectContext,
   CrawlResult
 } from '../types'

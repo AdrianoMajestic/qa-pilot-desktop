@@ -6,7 +6,7 @@ import type { GeminiConnectionTestResult } from '@shared/types'
 /**
  * Default Gemini model used for automated analysis and connection testing.
  */
-export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash'
+export const GEMINI_DEFAULT_MODEL = 'gemini-1.5-flash'
 
 /**
  * Retrieves the currently active Gemini API key.
@@ -29,7 +29,7 @@ export function getApiKey(): string {
 /**
  * Parses diverse Google Gemini API errors into user-friendly Russian explanations.
  */
-export function parseGeminiError(error: unknown): string {
+export function parseGeminiError(error: unknown, model: string = GEMINI_DEFAULT_MODEL): string {
   if (!error) {
     return 'Неизвестная ошибка API'
   }
@@ -71,7 +71,7 @@ export function parseGeminiError(error: unknown): string {
 
   // 4. Model not found or deprecated
   if (status === 404 || rawMessage.includes('NOT_FOUND') || rawMessage.includes('models/')) {
-    return `Запрошенная модель "${GEMINI_DEFAULT_MODEL}" недоступна или не найдена (404: NOT_FOUND).`
+    return `Запрошенная модель "${model}" недоступна или не найдена (404: NOT_FOUND).`
   }
 
   // 5. Access forbidden
@@ -87,9 +87,12 @@ export function parseGeminiError(error: unknown): string {
  * and that Google Gemini API is reachable.
  */
 export async function testGeminiConnection(
-  overrideApiKey?: string
+  overrideApiKey?: string,
+  overrideModel?: string
 ): Promise<GeminiConnectionTestResult> {
+  const settings = getSettings()
   const activeKey = overrideApiKey?.trim() || getApiKey()
+  const model = overrideModel?.trim() || settings.geminiModel || GEMINI_DEFAULT_MODEL
 
   if (!activeKey) {
     const errorMsg = 'API-ключ Gemini не задан. Укажите ключ в настройках приложения.'
@@ -100,21 +103,18 @@ export async function testGeminiConnection(
     }
   }
 
-  loggerService.info(
-    'ai',
-    `Проверка подключения к Google Gemini API (модель: ${GEMINI_DEFAULT_MODEL})...`
-  )
+  loggerService.info('ai', `Проверка подключения к Google Gemini API (модель: ${model})...`)
 
   try {
     const client = new GoogleGenAI({ apiKey: activeKey })
 
     const response = await client.models.generateContent({
-      model: GEMINI_DEFAULT_MODEL,
+      model: model,
       contents: 'Ping'
     })
 
     const reply = response.text ? response.text.trim() : 'OK'
-    const successMsg = `Успешное подключение к Google Gemini API (модель: ${GEMINI_DEFAULT_MODEL}, ответ: "${reply.length > 30 ? reply.slice(0, 30) + '...' : reply}")`
+    const successMsg = `Успешное подключение к Google Gemini API (модель: ${model}, ответ: "${reply.length > 30 ? reply.slice(0, 30) + '...' : reply}")`
 
     loggerService.success('ai', successMsg)
 
@@ -123,7 +123,7 @@ export async function testGeminiConnection(
       message: successMsg
     }
   } catch (error: unknown) {
-    const parsedError = parseGeminiError(error)
+    const parsedError = parseGeminiError(error, model)
     loggerService.error('ai', `Ошибка подключения к Google Gemini API: ${parsedError}`)
 
     return {
@@ -137,8 +137,15 @@ export async function testGeminiConnection(
  * Universal text generation helper with robust error handling and fallback messages.
  * Used by subsequent AI reasoning, code analysis, and test generation modules.
  */
-export async function generateText(prompt: string, systemInstruction?: string): Promise<string> {
+export async function generateText(
+  prompt: string,
+  systemInstruction?: string,
+  overrideModel?: string
+): Promise<string> {
+  const settings = getSettings()
   const activeKey = getApiKey()
+  const model = overrideModel?.trim() || settings.geminiModel || GEMINI_DEFAULT_MODEL
+
   if (!activeKey) {
     throw new Error('API-ключ Gemini не настроен. Укажите ключ в настройках приложения.')
   }
@@ -147,7 +154,7 @@ export async function generateText(prompt: string, systemInstruction?: string): 
     const client = new GoogleGenAI({ apiKey: activeKey })
 
     const response = await client.models.generateContent({
-      model: GEMINI_DEFAULT_MODEL,
+      model: model,
       contents: prompt,
       config: systemInstruction ? { systemInstruction } : undefined
     })
@@ -159,7 +166,7 @@ export async function generateText(prompt: string, systemInstruction?: string): 
 
     return resultText
   } catch (error: unknown) {
-    const parsedError = parseGeminiError(error)
+    const parsedError = parseGeminiError(error, model)
     throw new Error(`Сбой генерации текста Gemini: ${parsedError}`)
   }
 }

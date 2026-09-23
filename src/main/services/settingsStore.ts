@@ -6,8 +6,9 @@ import { type AppSettings } from '@shared/types'
 
 export type { AppSettings }
 
-const DEFAULT_SETTINGS: AppSettings = {
+export const DEFAULT_SETTINGS: AppSettings = {
   geminiApiKey: process.env.MAIN_VITE_GEMINI_API_KEY || '',
+  geminiModel: 'gemini-1.5-flash',
   playwrightHeadless: false,
   testTimeoutMs: 30000
 }
@@ -18,6 +19,16 @@ const DEFAULT_SETTINGS: AppSettings = {
 function getSettingsFilePath(): string {
   const userDataDir = app.getPath('userData')
   return join(userDataDir, 'settings.json')
+}
+
+function isValidGeminiModel(val: unknown): val is AppSettings['geminiModel'] {
+  return (
+    val === 'gemini-1.5-flash' ||
+    val === 'gemini-1.5-pro' ||
+    val === 'gemini-2.0-flash' ||
+    val === 'gemini-3.6-flash' ||
+    val === 'gemini-3.8-flash'
+  )
 }
 
 /**
@@ -39,6 +50,9 @@ export function getSettings(): AppSettings {
         typeof parsed.geminiApiKey === 'string'
           ? parsed.geminiApiKey
           : process.env.MAIN_VITE_GEMINI_API_KEY || '',
+      geminiModel: isValidGeminiModel(parsed.geminiModel)
+        ? parsed.geminiModel
+        : DEFAULT_SETTINGS.geminiModel,
       playwrightHeadless:
         typeof parsed.playwrightHeadless === 'boolean'
           ? parsed.playwrightHeadless
@@ -68,6 +82,9 @@ export function saveSettings(newSettings: Partial<AppSettings>): AppSettings {
         typeof newSettings.geminiApiKey === 'string'
           ? newSettings.geminiApiKey.trim()
           : current.geminiApiKey,
+      geminiModel: isValidGeminiModel(newSettings.geminiModel)
+        ? newSettings.geminiModel
+        : current.geminiModel || DEFAULT_SETTINGS.geminiModel,
       playwrightHeadless:
         typeof newSettings.playwrightHeadless === 'boolean'
           ? newSettings.playwrightHeadless
