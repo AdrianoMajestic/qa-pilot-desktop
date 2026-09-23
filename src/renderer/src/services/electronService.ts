@@ -11,6 +11,8 @@ import type {
   ArchitectureAnalysisResult,
   QASessionData,
   FinalQAReport,
+  CapturedBrowserError,
+  StackTraceAnalysisResult,
   PlaywrightRunOptions,
   PlaywrightRunStatus,
   CrawlerOptions,
@@ -243,6 +245,22 @@ class ElectronService {
   /**
    * Aggregates session metrics into a weighted Overall QA Score report (Main process).
    */
+  async analyzeStackTrace(
+    error: CapturedBrowserError,
+    context?: ProjectContext
+  ): Promise<StackTraceAnalysisResult> {
+    if (this.isElectronAvailable() && typeof window.api.analyzeStackTrace === 'function') {
+      return await window.api.analyzeStackTrace(error, context)
+    }
+    return {
+      errorId: error.id,
+      rootCause: `Web-fallback: ${error.message}`,
+      severity: 'medium',
+      stepsToFix: ['Запустите приложение в Electron для полного AI-анализа стек-трейса.'],
+      timestamp: Date.now()
+    }
+  }
+
   async generateFinalReport(sessionData: QASessionData): Promise<FinalQAReport> {
     if (this.isElectronAvailable() && typeof window.api.generateFinalReport === 'function') {
       return await window.api.generateFinalReport(sessionData)

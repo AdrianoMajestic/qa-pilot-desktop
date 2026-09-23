@@ -115,6 +115,7 @@
 | `ai:test-connection`    | Renderer -> Main | Валидация Gemini API ключа и проверка связи с моделью      | `(apiKey?: string) => Promise<GeminiConnectionTestResult>`                            |
 | `ai:analyze-architecture` | Renderer -> Main | AI-анализ архитектуры и структуры файлов (Gemini JSON)   | `(context: ProjectContext) => Promise<ArchitectureAnalysisResult>`                  |
 | `ai:generate-final-report` | Renderer -> Main | Агрегация Overall QA Score и итогового отчёта (Gemini) | `(data: QASessionData) => Promise<FinalQAReport>`                                   |
+| `ai:analyze-stack-trace` | Renderer -> Main | AI-разбор стек-трейса и генерация рекомендаций по исправлению | `(error: CapturedBrowserError, context?: ProjectContext) => Promise<StackTraceAnalysisResult>` |
 
 ---
 

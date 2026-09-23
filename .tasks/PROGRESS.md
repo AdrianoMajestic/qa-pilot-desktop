@@ -4,7 +4,7 @@
 
 - **Фаза:** Реализован полный стек `[CORE ENGINE]`: Playwright Test Runner, BFS-краулер, **Browser Error Interceptor (HTTP 500+, сетевые сбои, console errors, uncaught JS exceptions)** с IPC-мостом и React UI-виджетом. Все задачи домена `[CORE ENGINE]` завершены.
 - **Дата обновления:** 22 сентября 2026 г.
-- **Фаза (AI):** Домен `[AI INTEGRATION]` завершён по ключевым модулям: **Architecture Analyzer** (`architectureAnalyzer.ts`), **Overall QA Score Aggregator** (`reportGenerator.ts`) с IPC `ai:generate-final-report`, гидратацией `DashboardOverview` и типами `FinalQAReport` / `QualityRadarMetrics` / `QASessionData`.
+- **Фаза (AI):** Домен `[AI INTEGRATION]` ✅ **полностью завершён**: Architecture Analyzer, Stack Trace Analyzer (`stackTraceAnalyzer.ts`), Overall QA Score Aggregator, UI-триггеры «Analyze with AI» / «Сформировать QA-отчёт». **`BACKLOG.md` — COMPLETED**.
 
 ## Регламент работы
 
@@ -41,6 +41,8 @@
 - [x] Зарегистрировать IPC-обработчик `ai:analyze-architecture` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис `src/main/services/reportGenerator.ts` (`generateFinalQAReport`, weighted score 30/30/20/20, Gemini executive summary, radar metrics)
 - [x] Зарегистрировать IPC-обработчик `ai:generate-final-report` в `src/main/ipc/handlers.ts`
+- [x] Реализовать сервис `src/main/services/stackTraceAnalyzer.ts` (`analyzeStackTrace`, prompt builder, JSON schema + heuristic fallback)
+- [x] Зарегистрировать IPC-обработчик `ai:analyze-stack-trace` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис запуска тестов Playwright `src/main/services/playwrightRunner.ts` с поддержкой Chromium/Firefox/WebKit, headed mode по умолчанию, отменой и стримингом в `loggerService`
 - [x] Зарегистрировать IPC-обработчики `playwright:run`, `playwright:stop`, `playwright:status` в `src/main/ipc/handlers.ts`
 - [x] Реализовать сервис автоматического обхода веб-приложения `src/main/services/crawlerService.ts` с BFS-обходом страниц, обнаружением форм/полей ввода, эмуляцией взаимодействий, контролем домена и глубины
@@ -68,6 +70,10 @@
 - [x] Описать интерфейсы `QASessionData`, `PlaywrightSessionStats`, `QualityRadarMetrics`, `FinalQAReport` и канал `AI_GENERATE_FINAL_REPORT` в `@shared/types`
 - [x] Добавить метод `window.api.generateFinalReport(data)` в `src/preload/index.ts` и `CustomAPI` / `window.electronAPI`
 - [x] Интегрировать `generateFinalReport` в `src/renderer/src/services/electronService.ts` с web-fallback
+- [x] Описать интерфейсы `CapturedBrowserError`, `StackTraceAnalysisResult` и канал `AI_ANALYZE_STACK_TRACE` в `@shared/types`
+- [x] Добавить метод `window.api.analyzeStackTrace(error, context?)` в preload и `CustomAPI`
+- [x] Интегрировать `analyzeStackTrace` в `src/renderer/src/services/electronService.ts` с web-fallback
+- [x] Интегрировать кнопку «Analyze with AI» в `BrowserErrorsWidget.tsx` с отображением root cause, stepsToFix, codeFixSnippet
 - [x] Описать интерфейсы Playwright `PlaywrightRunOptions`, `PlaywrightRunStatus`, `PlaywrightBrowser` и каналы `PLAYWRIGHT_RUN`, `PLAYWRIGHT_STOP`, `PLAYWRIGHT_STATUS`
 - [x] Добавить метод `window.api.selectProject()` в `src/preload/index.ts` и `src/preload/index.d.ts`
 - [x] Добавить метод `window.api.parseProjectContext()` в `src/preload/index.ts` и `src/preload/index.d.ts`
@@ -95,12 +101,14 @@
 - [x] `useLogStream.ts`: кастомный хук подписки на поток IPC-логов с автоматической отпиской при размонтировании
 - [x] `App.tsx`: централизованное управление состоянием проекта, синхронизация настроек с главным процессом через `electronService`, проброс `onLog` в `SettingsModal`
 
-### 5. `[AI INTEGRATION]` — домен интеллектуального анализа Gemini ✅
+### 5. `[AI INTEGRATION]` — домен интеллектуального анализа Gemini ✅ ЗАВЕРШЁН
 
 - [x] Интеграция Google Gemini SDK в главном процессе (`geminiClient.ts`)
 - [x] Анализатор архитектуры и структуры файлов (`architectureAnalyzer.ts`, `ai:analyze-architecture`)
+- [x] Модуль разбора стек-трейсов и генерации рекомендаций (`stackTraceAnalyzer.ts`, `ai:analyze-stack-trace`)
 - [x] Модуль расчёта совокупного скоринга качества и итогового отчёта (`reportGenerator.ts`, `ai:generate-final-report`)
 - [x] Гидратация дашборда реальными метриками (`DashboardOverview.tsx`, `qaReportMapping.ts`)
+- [x] **`BACKLOG.md` — все 4 домена отмечены COMPLETED**
 
 ### 6. Виджеты визуального дашборда (Visual Dashboard Widgets)
 
@@ -146,6 +154,13 @@
     - В `@shared/types` и `handlers.ts` зарегистрирован алиас канала `AI_GENERATE_QA_REPORT: 'ai:generate-qa-report'`, в `FinalQAReport` добавлено поле `analysisMarkdown`.
     - В `reportGenerator.ts` добавлена генерация структурированного markdown-отчёта `formatReportMarkdown`.
   - **Верификация**: `pnpm typecheck` (код 0), `pnpm lint` (0 ошибок).
+- **22.09.2026 (Stack Trace Analyzer — [AI INTEGRATION] ✅ финальный модуль, BACKLOG COMPLETED)**:
+  - Создан `src/main/services/stackTraceAnalyzer.ts`: `buildStackTracePrompt`, `parseStackTraceResponse`, `analyzeStackTrace` с Gemini JSON schema, heuristic fallback при отсутствии ключа/API/parse errors.
+  - В `@shared/types`: `CapturedBrowserError`, `StackTraceAnalysisResult`, `IPC_CHANNELS.AI_ANALYZE_STACK_TRACE`, `analyzeStackTrace` в `CustomAPI`.
+  - IPC `ai:analyze-stack-trace`; preload + `electronService.analyzeStackTrace()`.
+  - `BrowserErrorsWidget.tsx`: кнопка «Analyze with AI», панель root cause / severity / stepsToFix / codeFixSnippet; передача `projectPath` для контекста.
+  - `BACKLOG.md`: статус **COMPLETED**, все задачи `[x]`. `ARCHITECTURE.md`: новый IPC-канал.
+  - Проверка: `pnpm typecheck`, `pnpm build`.
 
 - **22.09.2026 (Overall QA Score Aggregator — [AI INTEGRATION] ✅ итоговый отчёт)**:
   - Создан `src/main/services/reportGenerator.ts`: weighted score (архитектура 30%, Playwright 30%, рантайм 20%, краулер 20%), `QualityRadarMetrics`, Gemini `executiveSummary` с JSON schema и локальным fallback.

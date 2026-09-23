@@ -19,6 +19,8 @@ import {
   type ArchitectureAnalysisResult,
   type QASessionData,
   type FinalQAReport,
+  type CapturedBrowserError,
+  type StackTraceAnalysisResult,
   type PlaywrightRunOptions,
   type PlaywrightRunStatus,
   type CrawlerOptions,
@@ -32,6 +34,7 @@ import { getSettings, saveSettings } from '../services/settingsService'
 import { testGeminiConnection } from '../services/geminiClient'
 import { analyzeArchitecture } from '../services/architectureAnalyzer'
 import { generateFinalQAReport } from '../services/reportGenerator'
+import { analyzeStackTrace } from '../services/stackTraceAnalyzer'
 import { playwrightRunner } from '../services/playwrightRunner'
 import { crawlerService } from '../services/crawlerService'
 import { getBrowserErrors, clearBrowserErrors } from '../services/browserMonitor'
