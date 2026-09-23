@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai'
 import type { FinalQAReport, QASessionData, QualityRadarMetrics } from '@shared/types'
-import { GEMINI_DEFAULT_MODEL, getApiKey, parseGeminiError } from './geminiClient'
+import { getApiKey, parseGeminiError } from './geminiClient'
+import { getSettings } from './settingsStore'
 import { loggerService } from './loggerService'
 
 const NEUTRAL_SUBSCORE = 75
@@ -278,7 +279,10 @@ async function generateExecutiveSummary(
   radar: QualityRadarMetrics,
   criticalIssuesCount: number
 ): Promise<string[]> {
-  const apiKey = getApiKey()
+  const settings = getSettings()
+  const apiKey = settings.geminiApiKey?.trim() || getApiKey()
+  const model = settings.geminiModel || 'gemini-1.5-flash'
+
   if (!apiKey) {
     loggerService.warn(
       'ai',
@@ -299,7 +303,7 @@ async function generateExecutiveSummary(
   try {
     const client = new GoogleGenAI({ apiKey })
     const response = await client.models.generateContent({
-      model: GEMINI_DEFAULT_MODEL,
+      model: settings.geminiModel || 'gemini-1.5-flash',
       contents: `Сформируй executive summary для итогового QA-отчёта на основе метрик:\n\n${metricsJson}`,
       config: {
         systemInstruction,
@@ -331,7 +335,7 @@ async function generateExecutiveSummary(
 
     return bullets
   } catch (error) {
-    const parsed = parseGeminiError(error)
+    const parsed = parseGeminiError(error, model)
     loggerService.warn('ai', `Fallback executive summary (Gemini): ${parsed}`)
     return buildFallbackExecutiveSummary(session, overallScore, criticalIssuesCount)
   }

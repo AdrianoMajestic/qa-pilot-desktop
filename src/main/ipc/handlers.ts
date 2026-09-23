@@ -319,8 +319,8 @@ export function registerIpcHandlers(): void {
   // Google Gemini API Connection Test Handler
   ipcMain.handle(
     IPC_CHANNELS.AI_TEST_CONNECTION,
-    async (_event, apiKey?: string): Promise<GeminiConnectionTestResult> => {
-      return testGeminiConnection(apiKey)
+    async (_event, apiKey?: string, model?: string): Promise<GeminiConnectionTestResult> => {
+      return testGeminiConnection(apiKey, model)
     }
   )
 

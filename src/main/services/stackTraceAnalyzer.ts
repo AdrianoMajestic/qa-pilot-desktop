@@ -1,10 +1,7 @@
 import { GoogleGenAI } from '@google/genai'
-import type {
-  CapturedBrowserError,
-  ProjectContext,
-  StackTraceAnalysisResult
-} from '@shared/types'
-import { GEMINI_DEFAULT_MODEL, getApiKey, parseGeminiError } from './geminiClient'
+import type { CapturedBrowserError, ProjectContext, StackTraceAnalysisResult } from '@shared/types'
+import { getApiKey, parseGeminiError } from './geminiClient'
+import { getSettings } from './settingsStore'
 import { loggerService } from './loggerService'
 
 type Severity = StackTraceAnalysisResult['severity']
@@ -139,10 +136,9 @@ ${contextBlock}
 Provide rootCause, affectedModule (file path or component if identifiable), severity, stepsToFix (3-6 steps), and codeFixSnippet (corrected code or minimal diff).`
 }
 
-function buildFallbackAnalysis(error: CapturedBrowserError): Omit<
-  StackTraceAnalysisResult,
-  'errorId' | 'timestamp'
-> {
+function buildFallbackAnalysis(
+  error: CapturedBrowserError
+): Omit<StackTraceAnalysisResult, 'errorId' | 'timestamp'> {
   const severity = normalizeSeverity(undefined, error)
   const steps: string[] = []
 
@@ -239,7 +235,10 @@ export async function analyzeStackTrace(
   error: CapturedBrowserError,
   projectContext?: ProjectContext
 ): Promise<StackTraceAnalysisResult> {
-  const activeKey = getApiKey()
+  const settings = getSettings()
+  const activeKey = settings.geminiApiKey?.trim() || getApiKey()
+  const model = settings.geminiModel || 'gemini-1.5-flash'
+
   if (!activeKey) {
     const msg = 'API-ключ Gemini не задан. Укажите ключ в настройках приложения.'
     loggerService.warn('ai', msg)
@@ -253,7 +252,7 @@ export async function analyzeStackTrace(
 
   loggerService.info(
     'ai',
-    `AI-анализ стек-трейса [${error.id}] (${errorTypeLabel(error.type)}, модель: ${GEMINI_DEFAULT_MODEL})...`
+    `AI-анализ стек-трейса [${error.id}] (${errorTypeLabel(error.type)}, модель: ${model})...`
   )
 
   const userPrompt = buildStackTracePrompt(error, projectContext)
@@ -262,7 +261,7 @@ export async function analyzeStackTrace(
     const client = new GoogleGenAI({ apiKey: activeKey })
 
     const response = await client.models.generateContent({
-      model: GEMINI_DEFAULT_MODEL,
+      model: settings.geminiModel || 'gemini-1.5-flash',
       contents: userPrompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -301,7 +300,7 @@ export async function analyzeStackTrace(
 
     return result
   } catch (errorUnknown: unknown) {
-    const parsedError = parseGeminiError(errorUnknown)
+    const parsedError = parseGeminiError(errorUnknown, model)
     loggerService.warn('ai', `Fallback анализа стек-трейса (API): ${parsedError}`)
     const fallback = buildFallbackAnalysis(error)
     return {
