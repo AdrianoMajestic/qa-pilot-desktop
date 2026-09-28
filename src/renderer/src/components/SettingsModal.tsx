@@ -304,7 +304,8 @@ const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
             )}
 
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              API-токен используется главным процессом для анализа архитектуры и формирования отчёта Gemini.
+              API-токен используется главным процессом для анализа архитектуры и формирования отчёта
+              Gemini.
             </p>
           </div>
 

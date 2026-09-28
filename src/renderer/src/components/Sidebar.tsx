@@ -35,7 +35,7 @@ const FileTreeNode: React.FC<{
     if (extension === '.json') {
       return (
         <span className="text-[10px] font-bold font-mono px-1 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/60 leading-none">
-          { }
+          {}
         </span>
       )
     }
@@ -201,7 +201,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* File Explorer Tree */}
       <div className="flex-1 overflow-y-auto p-2">
         {collapsed ? (
-          <div className="flex flex-col items-center pt-3 text-slate-500" title={projectName || 'Файлы'}>
+          <div
+            className="flex flex-col items-center pt-3 text-slate-500"
+            title={projectName || 'Файлы'}
+          >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"

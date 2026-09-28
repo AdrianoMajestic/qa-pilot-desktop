@@ -41,7 +41,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-100">Метрики качества и Health Radar</h3>
+            <h3 className="text-sm font-semibold text-slate-100">
+              Метрики качества и Health Radar
+            </h3>
             <p className="text-xs text-slate-400">
               Построено на основе фактических данных сессии QA и Gemini-анализа
             </p>
