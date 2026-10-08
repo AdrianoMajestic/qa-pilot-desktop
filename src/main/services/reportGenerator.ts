@@ -38,15 +38,15 @@ function resolveArchitectureScore(session: QASessionData): number {
   return NEUTRAL_SUBSCORE
 }
 
-function resolvePlaywrightPassRate(session: QASessionData): number {
+function resolvePlaywrightPassRate(session: QASessionData): number | null {
   const stats = session.playwright
-  if (!stats) {
-    return NEUTRAL_SUBSCORE
+  if (!stats || stats.totalTests === undefined) {
+    return null
   }
   const total = stats.totalTests
   const passed = stats.passedTests
   if (total <= 0) {
-    return stats.lastRunSuccess === false ? 0 : NEUTRAL_SUBSCORE
+    return stats.lastRunSuccess === false ? 0 : null
   }
   return clampScore((passed / total) * 100)
 }
@@ -54,6 +54,7 @@ function resolvePlaywrightPassRate(session: QASessionData): number {
 function resolveRuntimeStabilityScore(session: QASessionData): number {
   const errors = session.browserErrors ?? []
   if (errors.length === 0) {
+    // 0 browser errors MUST equal 100% score (full points) for runtime stability
     return 100
   }
 
@@ -61,18 +62,23 @@ function resolveRuntimeStabilityScore(session: QASessionData): number {
   for (const err of errors) {
     switch (err.type) {
       case 'http_error':
-        penalty += err.statusCode && err.statusCode >= 500 ? 8 : 5
+        // HTTP 500+ = heavy server crash penalty, 4xx = medium penalty
+        penalty += err.statusCode && err.statusCode >= 500 ? 15 : 6
         break
       case 'network_failure':
-        penalty += 4
-        break
-      case 'console_error':
-        penalty += 3
+        // Connection refused / DNS drops
+        penalty += 8
         break
       case 'page_error':
-        penalty += 6
+        // Uncaught exceptions / crashes
+        penalty += 12
+        break
+      case 'console_error':
+        // JS console error
+        penalty += 4
         break
       default:
+        // Minor warnings / notices
         penalty += 2
     }
   }
@@ -80,10 +86,10 @@ function resolveRuntimeStabilityScore(session: QASessionData): number {
   return clampScore(100 - penalty)
 }
 
-function resolveCrawlerSuccessRatio(session: QASessionData): number {
+function resolveCrawlerSuccessRatio(session: QASessionData): number | null {
   const crawl = session.crawler
   if (!crawl) {
-    return NEUTRAL_SUBSCORE
+    return null
   }
 
   const visited = crawl.pagesVisited
@@ -106,19 +112,45 @@ function computeOverallScore(session: QASessionData): number {
   const runtime = resolveRuntimeStabilityScore(session)
   const crawler = resolveCrawlerSuccessRatio(session)
 
-  const weighted =
-    architecture * WEIGHT_ARCHITECTURE +
-    playwright * WEIGHT_PLAYWRIGHT +
-    runtime * WEIGHT_RUNTIME +
-    crawler * WEIGHT_CRAWLER
+  // Dynamic weight normalization:
+  // If Playwright tests were not run, or Crawler was not run, scale available axes to 100%
+  // Baseline nominal weights: Architecture: 0.35, Playwright: 0.30, Runtime: 0.20, Crawler: 0.15
+  let totalWeight = 0
+  let weightedSum = 0
 
-  return clampScore(weighted)
+  // 1. Architecture is always present (or has fallback neutral score)
+  const archWeight = 0.35
+  weightedSum += architecture * archWeight
+  totalWeight += archWeight
+
+  // 2. Runtime stability is always tracked (0 errors = 100%)
+  const runtimeWeight = 0.25
+  weightedSum += runtime * runtimeWeight
+  totalWeight += runtimeWeight
+
+  // 3. Playwright (if specs/runs exist)
+  if (playwright !== null) {
+    const playWeight = 0.25
+    weightedSum += playwright * playWeight
+    totalWeight += playWeight
+  }
+
+  // 4. Crawler (if executed)
+  if (crawler !== null) {
+    const crawlWeight = 0.15
+    weightedSum += crawler * crawlWeight
+    totalWeight += crawlWeight
+  }
+
+  // Normalize so score is strictly out of 100
+  const normalized = totalWeight > 0 ? weightedSum / totalWeight : 100
+  return clampScore(normalized)
 }
 
 function computeRadarMetrics(session: QASessionData): QualityRadarMetrics {
   const architecture = session.architecture
   const archScore = resolveArchitectureScore(session)
-  const playwrightRate = resolvePlaywrightPassRate(session)
+  const playwrightRate = resolvePlaywrightPassRate(session) ?? NEUTRAL_SUBSCORE
   const runtimeScore = resolveRuntimeStabilityScore(session)
 
   const highRisk = architecture?.untestedAreas.filter((a) => a.riskLevel === 'high').length ?? 0
@@ -182,34 +214,60 @@ function buildAggregatedMetricsPayload(
   criticalIssuesCount: number
 ): string {
   const architecture = session.architecture
+  const browserErrors = session.browserErrors ?? []
+  const playwright = session.playwright
+  const crawler = session.crawler
+
   return JSON.stringify(
     {
       projectName: session.projectName ?? 'unknown',
       overallScore,
       radarMetrics: radar,
       criticalIssuesCount,
-      architecture: architecture
+      architectureStatus: architecture
         ? {
             healthScore: architecture.healthScore,
-            untestedHigh: architecture.untestedAreas.filter((a) => a.riskLevel === 'high').length,
+            untestedHighRiskCount: architecture.untestedAreas.filter((a) => a.riskLevel === 'high').length,
+            untestedMediumRiskCount: architecture.untestedAreas.filter((a) => a.riskLevel === 'medium').length,
+            vulnerabilitiesCount: architecture.vulnerabilities.length,
             vulnerabilitySamples: architecture.vulnerabilities.slice(0, 5),
             recommendationSamples: architecture.recommendations.slice(0, 5)
           }
-        : null,
-      playwright: session.playwright ?? null,
-      crawler: session.crawler
+        : 'Архитектурный анализ исходного кода не проводился',
+      playwrightStatus:
+        playwright && playwright.totalTests > 0
+          ? {
+              totalTests: playwright.totalTests,
+              passedTests: playwright.passedTests,
+              failedTests: playwright.failedTests,
+              successRate: `${Math.round((playwright.passedTests / playwright.totalTests) * 100)}%`,
+              lastRunSuccess: playwright.lastRunSuccess
+            }
+          : 'Playwright тесты в проекте не запускались (пропуск оценки Playwright, вес распределен между архитектурой и рантаймом)',
+      crawlerStatus: crawler
         ? {
-            success: session.crawler.success,
-            pagesVisited: session.crawler.pagesVisited,
-            errorCount: session.crawler.errors.length
+            startUrl: crawler.startUrl,
+            success: crawler.success,
+            pagesVisited: crawler.pagesVisited,
+            totalForms: crawler.totalForms,
+            totalInputs: crawler.totalInputs,
+            errorsCount: crawler.errors.length,
+            statusText:
+              crawler.errors.length === 0
+                ? 'Автоматический обход завершен успешно: битых ссылок и сбоев страниц не обнаружено'
+                : `Обнаружено ошибок обхода: ${crawler.errors.length}`
           }
-        : null,
-      browserErrorSummary: {
-        total: session.browserErrors?.length ?? 0,
-        http500Plus:
-          session.browserErrors?.filter(
-            (e) => e.type === 'http_error' && (e.statusCode ?? 0) >= 500
-          ).length ?? 0
+        : 'Краулер страниц не запускался в этой сессии',
+      runtimeErrorStatus: {
+        totalCapturedErrors: browserErrors.length,
+        http500ServerErrors: browserErrors.filter((e) => e.type === 'http_error' && (e.statusCode ?? 0) >= 500).length,
+        networkFailures: browserErrors.filter((e) => e.type === 'network_failure').length,
+        uncaughtPageExceptions: browserErrors.filter((e) => e.type === 'page_error').length,
+        consoleErrors: browserErrors.filter((e) => e.type === 'console_error').length,
+        diagnosticMessage:
+          browserErrors.length === 0
+            ? 'Ошибок в консоли браузера, сетевых сбоев и HTTP 500+ не обнаружено (100% стабильность рантайма)'
+            : `Зафиксировано ${browserErrors.length} сбоев рантайма. Требуется исправление сетевых ошибок и исключений.`
       }
     },
     null,
@@ -232,11 +290,15 @@ function buildFallbackExecutiveSummary(
     const high = session.architecture.untestedAreas.filter((a) => a.riskLevel === 'high').length
     if (high > 0) {
       bullets.push(
-        `Архитектурный анализ: ${high} высокорисковых зон без тестов — приоритизируйте покрытие сервисов и IPC-слоя.`
+        `Архитектурный анализ: ${high} высокорисковых зон без тестов — приоритизируйте покрытие ключевых сервисов.`
       )
     } else if (session.architecture.vulnerabilities.length > 0) {
       bullets.push(
-        `Безопасность: обнаружено ${session.architecture.vulnerabilities.length} потенциальных уязвимостей — проверьте зависимости и конфигурации.`
+        `Безопасность: обнаружено ${session.architecture.vulnerabilities.length} потенциальных уязвимостей — проверьте конфигурации и зависимости.`
+      )
+    } else {
+      bullets.push(
+        'Архитектура стабильна: критических структурных дефектов и уязвимостей в кодовой базе не обнаружено.'
       )
     }
   }
@@ -247,7 +309,7 @@ function buildFallbackExecutiveSummary(
       : 0
   if (failedTests > 0) {
     bullets.push(
-      `Playwright: ${failedTests} тест(ов) не пройдено — стабилизируйте падающие сценарии перед релизом.`
+      `Playwright: ${failedTests} тест(ов) не пройдено — устраните сбои тестовых сценариев перед релизом.`
     )
   }
 
@@ -256,17 +318,21 @@ function buildFallbackExecutiveSummary(
     bullets.push(
       `Рантайм: зафиксировано ${errCount} ошибок браузера/сети — устраните HTTP 500+ и необработанные исключения.`
     )
+  } else {
+    bullets.push(
+      'Рантайм стабилен: ошибок в консоли браузера, сетевых сбоев и HTTP 500+ не зафиксировано (100% стабильность).'
+    )
   }
 
   if (session.crawler && session.crawler.errors.length > 0) {
     bullets.push(
-      `Краулер: ${session.crawler.errors.length} сбоев обхода — проверьте маршруты и доступность страниц.`
+      `Краулер: ${session.crawler.errors.length} сбоев обхода — проверьте доступность страниц и маршрутов.`
     )
   }
 
   if (bullets.length < 3) {
     bullets.push(
-      'Поддерживайте текущий уровень качества: регулярно запускайте Playwright и AI-аудит архитектуры.'
+      'Рекомендация: поддерживайте текущий уровень качества, регулярно запуская авто-тесты и аудит архитектуры.'
     )
   }
 
@@ -298,7 +364,7 @@ async function generateExecutiveSummary(
     criticalIssuesCount
   )
 
-  const systemInstruction = `You are a QA release manager. Given aggregated QA metrics JSON, produce 3-5 concise bullet points in Russian highlighting the most critical issues and immediate fixes. Output JSON only.`
+  const systemInstruction = `You are a Senior QA Release Manager and Systems Architect. Given aggregated QA metrics JSON, produce 3-5 concise, factual bullet points in Russian highlighting the overall quality, key risks (or noting their absence if clean), and immediate action items. Never hallucinate bugs when metrics indicate 0 errors or clean states. Output JSON only according to the specified schema.`
 
   try {
     const client = new GoogleGenAI({ apiKey })
@@ -352,54 +418,113 @@ function formatReportMarkdown(
   const arch = sessionData.architecture
   const crawl = sessionData.crawler
   const errors = sessionData.browserErrors || []
+  const playwright = sessionData.playwright
 
   const sections: string[] = []
 
   sections.push(`# Отчёт QA-аудита: ${projectName}`)
   sections.push(`*Дата генерации:* ${dateStr}\n`)
-  sections.push(`## 📊 Сводные показатели качества`)
-  sections.push(`- **Совокупный скоринг надежности:** ${overallScore}/100`)
-  sections.push(`- **Количество критических сигналов:** ${criticalIssuesCount}`)
-  sections.push(`- **Зафиксировано сбоев браузера/сети:** ${errors.length}`)
 
-  sections.push(`\n## 🤖 Выводы и рекомендации Gemini AI (Executive Summary)`)
+  // Section 1: 📊 Итоговая оценка и сводка
+  sections.push(`## 📊 Итоговая оценка и сводка`)
+  sections.push(`- **Совокупный QA Health Score:** ${overallScore}/100`)
+  sections.push(`- **Количество критических сигналов:** ${criticalIssuesCount}`)
+  sections.push(
+    `- **Рантайм-стабильность:** ${
+      errors.length === 0
+        ? '100% (Ошибок в консоли браузера, сетевых сбоев и HTTP 500+ не обнаружено)'
+        : `${errors.length} зафиксированных сбоев браузера/сети`
+    }`
+  )
+  if (playwright && playwright.totalTests > 0) {
+    sections.push(
+      `- **Playwright тесты:** ${playwright.passedTests}/${playwright.totalTests} пройдено (${Math.round((playwright.passedTests / playwright.totalTests) * 100)}%)`
+    )
+  } else {
+    sections.push(
+      `- **Playwright тесты:** Не запускались в этой сессии (вес динамически распределен)`
+    )
+  }
+  if (crawl) {
+    sections.push(
+      `- **Обход краулера:** ${crawl.pagesVisited} страниц, ${crawl.totalForms} форм (ошибок: ${crawl.errors.length})`
+    )
+  }
   if (executiveSummary.length > 0) {
+    sections.push(`\n**Ключевые выводы:**`)
     for (const item of executiveSummary) {
       sections.push(`- ${item}`)
     }
-  } else {
-    sections.push('- Критических замечаний не выявлено.')
   }
 
+  // Section 2: 🚨 Критические риски и уязвимости
+  sections.push(`\n## 🚨 Критические риски и уязвимости`)
+  const criticalItems: string[] = []
+  if (arch?.vulnerabilities && arch.vulnerabilities.length > 0) {
+    for (const v of arch.vulnerabilities) {
+      criticalItems.push(`- ⚠️ **Уязвимость:** ${v}`)
+    }
+  }
+  const highRiskAreas = arch?.untestedAreas?.filter((a) => a.riskLevel === 'high') ?? []
+  if (highRiskAreas.length > 0) {
+    for (const area of highRiskAreas) {
+      criticalItems.push(`- ⚠️ **Высокорисковая зона без тестов:** \`${area.path}\` — ${area.reason}`)
+    }
+  }
+  const http500Errors = errors.filter((e) => e.type === 'http_error' && (e.statusCode ?? 0) >= 500)
+  if (http500Errors.length > 0) {
+    criticalItems.push(`- ⚠️ **Критические серверные ошибки (HTTP 500+):** зафиксировано ${http500Errors.length}`)
+  }
+  const pageCrashes = errors.filter((e) => e.type === 'page_error')
+  if (pageCrashes.length > 0) {
+    criticalItems.push(`- ⚠️ **Неперехваченные исключения страниц:** зафиксировано ${pageCrashes.length}`)
+  }
+
+  if (criticalItems.length > 0) {
+    for (const item of criticalItems) {
+      sections.push(item)
+    }
+  } else {
+    sections.push(`- ✅ Критических рисков и уязвимостей не обнаружено. Кодовая база и рантайм находятся в стабильном состоянии.`)
+  }
+
+  // Section 3: 🔍 Анализ архитектуры и покрытия
+  sections.push(`\n## 🔍 Анализ архитектуры и покрытия`)
   if (arch) {
-    sections.push(`\n## 🏗 Архитектурный анализ исходного кода`)
     sections.push(`- **Оценка здоровья архитектуры:** ${arch.healthScore}/100`)
     if (arch.untestedAreas && arch.untestedAreas.length > 0) {
-      sections.push(`\n### Непокрытые тестами модули:`)
+      sections.push(`\n### Непокрытые модули:`)
       for (const area of arch.untestedAreas) {
         sections.push(`- \`${area.path}\` [${area.riskLevel.toUpperCase()}]: ${area.reason}`)
       }
+    } else {
+      sections.push(`- Все ключевые модули покрыты тестами или имеют достаточную изоляцию.`)
     }
-    if (arch.vulnerabilities && arch.vulnerabilities.length > 0) {
-      sections.push(`\n### Потенциальные риски и уязвимости:`)
-      for (const v of arch.vulnerabilities) {
-        sections.push(`- ⚠️ ${v}`)
-      }
-    }
-    if (arch.recommendations && arch.recommendations.length > 0) {
-      sections.push(`\n### Рекомендации QA-инженера:`)
-      for (const rec of arch.recommendations) {
-        sections.push(`- 💡 ${rec}`)
-      }
-    }
+  } else {
+    sections.push(`- Архитектурный анализ исходного кода не запускался.`)
   }
 
-  if (crawl) {
-    sections.push(`\n## 🌐 Результаты автоматического обхода Playwright`)
-    sections.push(`- **Целевой URL:** ${crawl.startUrl}`)
-    sections.push(`- **Посещено страниц:** ${crawl.pagesVisited}`)
-    sections.push(`- **Обнаружено форм / полей ввода:** ${crawl.totalForms} / ${crawl.totalInputs}`)
-    sections.push(`- **Ошибок в ходе обхода:** ${crawl.errors.length}`)
+  // Section 4: 🛠️ Пошаговый план улучшения QA
+  sections.push(`\n## 🛠️ Пошаговый план улучшения QA`)
+  const actionPlan: string[] = []
+  if (arch?.recommendations && arch.recommendations.length > 0) {
+    for (const rec of arch.recommendations) {
+      actionPlan.push(`- 💡 ${rec}`)
+    }
+  }
+  if (!playwright || playwright.totalTests === 0) {
+    actionPlan.push(`- 🧪 **Внедрить E2E тесты:** Создайте Playwright spec-тесты для критических пользовательских сценариев.`)
+  } else if (playwright.failedTests > 0) {
+    actionPlan.push(`- 🔧 **Стабилизация упавших тестов:** Локализуйте и устраните причины сбоя ${playwright.failedTests} тестов Playwright.`)
+  }
+  if (errors.length > 0) {
+    actionPlan.push(`- 🛡️ **Устранение ошибок рантайма:** Проверьте стек-трейсы ${errors.length} зафиксированных сбоев браузера.`)
+  }
+  if (actionPlan.length === 0) {
+    actionPlan.push(`- 🚀 Продолжайте мониторинг при каждом PR и регулярно запускайте авто-краулер перед релизами.`)
+  }
+  for (const step of actionPlan) {
+    sections.push(step)
   }
 
   return sections.join('\n')
