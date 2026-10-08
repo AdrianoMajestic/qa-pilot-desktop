@@ -19,8 +19,6 @@ import {
   type ArchitectureAnalysisResult,
   type QASessionData,
   type FinalQAReport,
-  type CapturedBrowserError,
-  type StackTraceAnalysisResult,
   type PlaywrightRunOptions,
   type PlaywrightRunStatus,
   type CrawlerOptions,
