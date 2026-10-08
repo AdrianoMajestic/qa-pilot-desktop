@@ -240,7 +240,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       let architecture: QASessionData['architecture']
       if (projectPath) {
-        onTriggerLog('AI-анализ архитектуры проекта моделью gemini-1.5-flash...', 'info', 'AI Отчёт')
+        onTriggerLog(
+          'AI-анализ архитектуры проекта моделью gemini-1.5-flash...',
+          'info',
+          'AI Отчёт'
+        )
         const context = rawContext || (await electronService.parseProjectContext(projectPath))
         architecture = await electronService.analyzeArchitecture(context)
       }
@@ -427,8 +431,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {isParsingContext ? (
               <>
                 <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
                 <span>Парсинг файлов...</span>
               </>
@@ -452,7 +467,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   />
                 </svg>
               </div>
-              <h3 className="text-sm font-semibold text-slate-100">2. 🌐 Авто-краулер Playwright</h3>
+              <h3 className="text-sm font-semibold text-slate-100">
+                2. 🌐 Авто-краулер Playwright
+              </h3>
             </div>
             {isCrawling && (
               <span className="flex items-center gap-1.5 text-[10px] font-mono text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800/60">
@@ -463,7 +480,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="target-url-input" className="text-[11px] font-medium text-slate-400 block">
+            <label
+              htmlFor="target-url-input"
+              className="text-[11px] font-medium text-slate-400 block"
+            >
               Target URL:
             </label>
             <input
@@ -479,7 +499,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           {/* Badges: Real intercepted errors & Crawl stats */}
           <div className="space-y-2">
-            <span className="text-[11px] font-medium text-slate-400 block">Сбои браузера / Результаты:</span>
+            <span className="text-[11px] font-medium text-slate-400 block">
+              Сбои браузера / Результаты:
+            </span>
             <div className="flex flex-wrap gap-2">
               <span
                 className={`px-2.5 py-1 rounded text-[11px] font-mono border ${
@@ -631,7 +653,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             finalReport.analysisMarkdown || (
               <div className="space-y-3">
                 <div className="font-semibold text-indigo-300">
-                  Совокупный скоринг качества: {finalReport.overallScore}/100 (Критических сигналов: {finalReport.criticalIssuesCount})
+                  Совокупный скоринг качества: {finalReport.overallScore}/100 (Критических сигналов:{' '}
+                  {finalReport.criticalIssuesCount})
                 </div>
                 <div className="space-y-1">
                   <div className="text-slate-400 font-bold">Executive Summary:</div>

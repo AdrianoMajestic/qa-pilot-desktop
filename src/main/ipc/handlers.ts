@@ -343,6 +343,17 @@ export function registerIpcHandlers(): void {
     }
   )
 
+  ipcMain.handle(
+    IPC_CHANNELS.AI_ANALYZE_STACK_TRACE,
+    async (
+      _event,
+      error: CapturedBrowserError,
+      context?: ProjectContext
+    ): Promise<StackTraceAnalysisResult> => {
+      return analyzeStackTrace(error, context)
+    }
+  )
+
   // Browser Error Interceptor Handlers
   ipcMain.handle(
     IPC_CHANNELS.BROWSER_ERRORS_GET,

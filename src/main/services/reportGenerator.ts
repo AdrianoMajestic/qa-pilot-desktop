@@ -573,4 +573,3 @@ export async function generateFinalQAReport(sessionData: QASessionData): Promise
 
   return report
 }
-
